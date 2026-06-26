@@ -45,7 +45,7 @@ Virtual Machines
 | Home VLAN | Personal devices |
 | Work VLAN | Work computer |
 | Management VLAN | Infrastructure management |
-| DShield VLAN | Honeypot isolation |
+| Security VLAN | Honeypot isolation |
 
 ---
 
