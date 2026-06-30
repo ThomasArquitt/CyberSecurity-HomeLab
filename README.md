@@ -43,6 +43,14 @@ The CyberSecurity-HomeLab uses a FortiGate 90D as the primary edge firewall. It 
 
 ---
 
+# Network Segmentation
+
+The FortiGate firewall provides inter-VLAN routing and policy enforcement for multiple isolated network segments. The environment separates management, trusted home devices, work systems, wireless networks, guest access, and security infrastructure to reduce attack surface and improve security.
+
+![FortiGate Interfaces](screenshots/fortigate-interfaces.png)
+
+---
+
 # Current Architecture
 
 > **Detailed architecture diagrams are available in the `/diagrams` directory.**
