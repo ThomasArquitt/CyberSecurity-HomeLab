@@ -15,7 +15,7 @@ The addressing plan is organized by VLAN and subnet to make troubleshooting, doc
 | 10 | 10.1.10.0/24 | 10.1.10.1 | Home wired devices |
 | 50 | 10.1.50.0/24 | 10.1.50.1 | Work network |
 | 69 | 10.1.69.0/24 | 10.1.69.1 | Security services |
-|Internal| 192.168.1.0/24 | 192.168.1.1 | Management |
+|Internal| 192.168.1.0/24 | 192.168.1.1 | Infrastructure Management |
 | 220 | 10.1.220.0/24 | 10.1.220.1 | Private Wi-Fi |
 | 221 | 10.1.221.0/24 | 10.1.221.1 | Guest Wi-Fi |
 
@@ -25,8 +25,8 @@ The addressing plan is organized by VLAN and subnet to make troubleshooting, doc
 
 | Device | IP Address | VLAN | Purpose |
 |--------|------------|------|---------|
-| Proxmox Host | 10.1.90.10 | 90 | Hypervisor management |
-| Ubuntu Server VM | 10.1.90.20 | 90 | Management server |
+| Proxmox Host | 192.168.1.10 | Internal | Hypervisor management |
+| Ubuntu Server VM | 192.168.1.20 | Internal | Infrastructure Management |
 | DShield Honeypot VM | 10.1.69.70 | 69 | Honeypot sensor |
 | Home Host PC | 10.1.10.50 | 10 | PC Set up to access Proxmox, all VMs, Fortigate Firewall, Ubiquiti Switch |
 ---
