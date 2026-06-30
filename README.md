@@ -27,6 +27,14 @@ Current implementation includes:
 
 ---
 
+# Proxmox Virtualization Platform   👈 INSERT THIS NEW SECTION HERE
+
+The CyberSecurity-HomeLab is hosted on a dedicated Proxmox VE virtualization platform running enterprise-style virtual infrastructure for management and security operations.
+
+![Proxmox Overview](screenshots/proxmox-overview.png)
+
+---
+
 # Current Architecture
 
 > **Detailed architecture diagrams are available in the `/diagrams` directory.**
