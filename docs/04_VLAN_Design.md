@@ -28,7 +28,7 @@ The VLAN design follows several security principles:
 | 10 | Home | 10.1.10.0/24 | Trusted wired home devices |
 | 50 | Work | 10.1.50.0/24 | Dedicated work computer |
 | 69 | Security | 10.1.69.0/24 | DShield Honeypot and future security services |
-| 90 | Management | 192.168.1.0/24 | Infrastructure management |
+| Internal | Management | 192.168.1.0/24 | Infrastructure management |
 | 220 | Private Wi-Fi | 10.1.220.0/24 | Trusted wireless devices |
 | 221 | Guest Wi-Fi | 10.1.221.0/24 | Internet-only guest wireless |
 
