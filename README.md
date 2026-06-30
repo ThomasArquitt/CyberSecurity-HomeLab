@@ -35,6 +35,14 @@ The CyberSecurity-HomeLab is hosted on a dedicated Proxmox VE virtualization pla
 
 ---
 
+# FortiGate Edge Firewall
+
+The CyberSecurity-HomeLab uses a FortiGate 90D as the primary edge firewall. It provides WAN connectivity, inter-VLAN routing, stateful firewall inspection, NAT, Virtual IP (VIP) publishing for Internet-facing services, and policy enforcement across segmented networks.
+
+![FortiGate Dashboard](screenshots/fortigate-dashboard.png)
+
+---
+
 # Current Architecture
 
 > **Detailed architecture diagrams are available in the `/diagrams` directory.**
