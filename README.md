@@ -100,6 +100,20 @@ The following screenshots document the Layer 3 interface configuration for each 
 
 ---
 
+## Documentation
+
+Detailed documentation for each major component of the HomeLAB is available below.
+
+| Documentation | Description |
+|--------------|-------------|
+| [Network Architecture](diagrams/network-architecture.png) | High-level infrastructure topology |
+| [VLAN Design](docs/vlans.md) | VLAN segmentation, addressing, and design rationale |
+| [Proxmox Platform](docs/proxmox.md) | Virtualization platform and VM inventory |
+| [Firewall Policies](docs/firewall-policies.md) | FortiGate firewall rules and security policy documentation *(In Progress)* |
+| [DShield Honeypot](docs/dshield.md) | Honeypot deployment and configuration *(In Progress)* |
+
+---
+
 # Technology Stack
 
 ## Networking
@@ -180,21 +194,31 @@ This project demonstrates practical experience with:
 
 # Current Project Status
 
-✔ Production network deployed
+✓ Production network deployed
 
-✔ Fiber ONT connected directly to FortiGate WAN
+✓ Fiber ONT connected directly to FortiGate WAN
 
-✔ Internal infrastructure management network operational
+✓ Infrastructure management network operational
 
-✔ Network segmentation validated
+✓ Network segmentation validated
 
-✔ Home, Work, Security, Private Wi-Fi, and Guest Wi-Fi networks operational
+✓ Home, Work, Security, Private Wi-Fi, and Public Wi-Fi networks operational
 
-✔ Internet-facing DShield Honeypot deployed
+✓ Internet-facing DShield Honeypot deployed
 
-✔ Live attack traffic observed and validated
+✓ Live attack traffic observed and validated
 
-✔ VM snapshots and backup strategy implemented
+✓ VM snapshot and backup strategy implemented
+
+✓ Proxmox VE virtualization platform deployed
+
+✓ Enterprise VLAN architecture documented
+
+✓ FortiGate interface configurations documented
+
+✓ High-level network architecture documented
+
+✓ GitHub project documentation established
 
 Project progress is tracked in:
 
@@ -203,20 +227,20 @@ Project progress is tracked in:
 
 ---
 
-# Future Enhancements
+## Future Enhancements
 
 Planned future work includes:
 
 - Microsoft Sentinel SIEM
 - Centralized Log Collection
-- Threat Hunting Workflows
-- MITRE ATT&CK Mapping
+- Infrastructure Monitoring
 - Active Directory Lab
 - Windows Server Infrastructure
 - Detection Engineering
-- Python Automation
+- Threat Hunting Workflows
+- MITRE ATT&CK Mapping
 - PowerShell Automation
-- Infrastructure Monitoring
+- Python Automation
 
 ---
 
