@@ -59,6 +59,47 @@ The FortiGate firewall provides inter-VLAN routing and policy enforcement for mu
 
 ---
 
+## Network Configuration
+
+The HomeLAB network is segmented using IEEE 802.1Q VLANs configured on a FortiGate 90D. Each VLAN has its own Layer 3 gateway, DHCP scope, and security policies to isolate network traffic while allowing controlled inter-VLAN communication where required.
+
+| VLAN | Purpose | Network |
+|------|---------|---------|
+| VLAN 10 | Home Network | 10.1.10.0/24 |
+| VLAN 50 | Work Network | 10.1.50.0/24 |
+| VLAN 69 | Security Lab | 10.1.69.0/24 |
+| VLAN 220 | Private WiFi | 10.1.220.0/24 |
+| VLAN 221 | Public WiFi | 10.1.221.0/24 |
+| Management | Infrastructure Management | 192.168.1.0/24 |
+
+---
+
+### FortiGate VLAN Interface Configuration
+
+The following screenshots document the Layer 3 interface configuration for each VLAN on the FortiGate firewall.
+
+#### Home VLAN (VLAN 10)
+
+![Home VLAN](screenshots/fortigate-home-vlan-config.png)
+
+#### Work VLAN (VLAN 50)
+
+![Work VLAN](screenshots/fortigate-work-vlan-config.png)
+
+#### Security VLAN (VLAN 69)
+
+![Security VLAN](screenshots/fortigate-security-vlan-config.png)
+
+#### Private WiFi VLAN (VLAN 220)
+
+![Private WiFi VLAN](screenshots/fortigate-private-wifi-vlan-config.png)
+
+#### Public WiFi VLAN (VLAN 221)
+
+![Public WiFi VLAN](screenshots/fortigate-public-wifi-vlan-config.png)
+
+---
+
 # Technology Stack
 
 ## Networking
