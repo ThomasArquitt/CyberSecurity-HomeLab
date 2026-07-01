@@ -55,7 +55,7 @@ The FortiGate firewall provides inter-VLAN routing and policy enforcement for mu
 
 > **The current high-level network architecture is shown below. Additional diagrams are available in the `/diagrams` directory.**
 
-![High-Level Network Architecture](diagrams/network-architecture.svg)
+![High-Level Network Architecture](diagrams/network-architecture.png)
 
 ---
 
