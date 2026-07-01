@@ -27,7 +27,7 @@ Current implementation includes:
 
 ---
 
-# Proxmox Virtualization Platform   👈 INSERT THIS NEW SECTION HERE
+# Proxmox Virtualization Platform
 
 The CyberSecurity-HomeLab is hosted on a dedicated Proxmox VE virtualization platform running enterprise-style virtual infrastructure for management and security operations.
 
@@ -53,43 +53,9 @@ The FortiGate firewall provides inter-VLAN routing and policy enforcement for mu
 
 # Current Architecture
 
-> **Detailed architecture diagrams are available in the `/diagrams` directory.**
+> **The current high-level network architecture is shown below. Additional diagrams are available in the `/diagrams` directory.**
 
-```
-                    Internet
-                        │
-                        ▼
-                  Fiber ONT
-                        │
-                        ▼
-                 FortiGate 90D
-                        │
-                        ▼
-         Ubiquiti Switch Lite 8 PoE
-                        │
-        ┌───────────────┼────────────────┐
-        │               │                │
-        ▼               ▼                ▼
- Internal /        Segmented         Wireless
- Management         Networks         Networks
-  Network
-                        │
-        ┌───────────────┼───────────────────────────────┐
-        │               │               │               │
-        ▼               ▼               ▼               ▼
-   Home Network    Work Network   Security Network  Private Wi-Fi
-                                         │
-                                         ▼
-                                DShield Honeypot
-
-                        ▼
-              Proxmox Virtualization Host
-                        │
-        ┌───────────────┴───────────────┐
-        │                               │
-        ▼                               ▼
-   Ubuntu Server                 DShield Honeypot
-```
+![High-Level Network Architecture](diagrams/network-architecture.svg)
 
 ---
 
