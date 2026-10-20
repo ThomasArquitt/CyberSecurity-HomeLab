@@ -2,605 +2,677 @@
 
 ## 1. Overview
 
-This document defines the IPv4 addressing scheme, VLAN subnets, default gateways, DHCP scopes, DNS configurations, and infrastructure IP assignments used throughout the CyberSecurity HomeLAB.
+This document describes the IPv4 addressing architecture implemented within the CyberSecurity-HomeLab environment.
 
-The environment uses a FortiGate 90D firewall for network segmentation, inter-VLAN routing, DHCP services, and internet connectivity.
+The laboratory uses a structured addressing scheme to support network segmentation, infrastructure management, centralized security monitoring, and controlled communication between systems.
 
-The addressing design separates home devices, work devices, cybersecurity infrastructure, gaming services, and wireless clients into dedicated network segments.
+A FortiGate 90D firewall provides:
 
-### Primary Infrastructure
+- Network gateway services
+- Inter-VLAN routing
+- DHCP services
+- Network Address Translation (NAT)
+- Firewall policy enforcement
+- Network traffic logging
 
-| Component | Hostname / Device | IP Address |
-|---|---|---|
-| Firewall | FortiGate 90D | 192.168.1.1 |
-| Managed Switch | Ubiquiti Switch Lite 8 PoE | 192.168.1.2 |
-| Hypervisor | Proxmox VE — pve | 192.168.1.10 |
-| Administrative Workstation | TIC-PC | 10.1.10.50 |
-| Honeypot | DSHIELD-01 | 10.1.69.70 |
-| SOC Endpoint | WIN11-SOC-01 | 10.1.69.71 |
-| SIEM Server | WAZUH-01 | 10.1.69.72 |
-| Gaming Server | GAME-SERVER-01 | 10.1.90.100 |
+The addressing architecture separates trusted personal devices, work-related systems, cybersecurity infrastructure, gaming services, and wireless clients.
 
-**Verification:** Infrastructure addresses were established through FortiGate configuration, Proxmox management information, endpoint configuration, and Wazuh agent inventory.
+**Last Updated:** October 20, 2026
+
+> **Security Note:** This document is a sanitized representation of the operational addressing plan. Actual IP addresses, VLAN IDs, gateway assignments, DHCP allocation ranges, administrative endpoints, operational hostnames, and firewall address objects are intentionally excluded from the public repository.
 
 ---
 
-## 2. Network Addressing Architecture
+## 2. Addressing Architecture
 
-The HomeLAB uses the following network structure:
+The HomeLAB utilizes private IPv4 addressing across seven logical network segments.
+
+Six segments are implemented using VLANs, while the infrastructure management network operates through an untagged FortiGate hardware switch interface.
+
+### Network Segment Inventory
+
+| Network Segment | Purpose | Addressing Method |
+|---|---|---|
+| Infrastructure Management | Firewall, switching, and virtualization management | Static/Managed Infrastructure |
+| Home Network | Trusted personal devices | DHCP and designated infrastructure assignments |
+| Work Network | Work-related devices | DHCP |
+| Security Laboratory | Security monitoring and testing systems | Static IPv4 |
+| Gaming Network | Dedicated gaming infrastructure | DHCP with reservations |
+| Private Wireless | Trusted wireless clients | DHCP |
+| Public Wireless | Guest and less-trusted wireless clients | DHCP |
+
+### Logical Architecture
 
 ```text
-Internet
-   |
-Breezeline Fiber ONT
-   |
-FortiGate 90D
-   |
-   +-- Internal Management Network
-   |      192.168.1.0/24
-   |
-   +-- VLAN 10  | Home
-   |      10.1.10.0/24
-   |
-   +-- VLAN 50  | Work
-   |      10.1.50.0/24
-   |
-   +-- VLAN 69  | Security
-   |      10.1.69.0/24
-   |
-   +-- VLAN 90  | Gaming
-   |      10.1.90.0/24
-   |
-   +-- VLAN 220 | Private Wi-Fi
-   |      10.1.220.0/24
-   |
-   +-- VLAN 221 | Public Wi-Fi
-          10.1.221.0/24
+                         INTERNET
+                            |
+                            |
+                      ISP EQUIPMENT
+                            |
+                            |
+                      FORTIGATE 90D
+                     FIREWALL / ROUTER
+                            |
+             +--------------+--------------+
+             |              |              |
+             |              |              |
+       INFRASTRUCTURE    VLAN-BASED     INTERNET
+         MANAGEMENT      NETWORKS      CONNECTIVITY
+                            |
+          +-----------------+-----------------+
+          |                 |                 |
+          |                 |                 |
+        HOME              WORK             SECURITY
+          |                 |                 |
+          |                 |          +------+------+
+          |                 |          |      |      |
+          |                 |       DSHIELD WINDOWS WAZUH
+          |                 |       HONEYPOT SOC VM   SIEM
+          |
+          +-----------------------------------------+
+                            |
+                      OTHER VLANs
+                            |
+               +------------+------------+
+               |            |            |
+               |            |            |
+             GAMING       PRIVATE      PUBLIC
+                          WIRELESS     WIRELESS
 ```
 
-All six VLAN interfaces are configured on the FortiGate with `internal` as their parent interface.
+This diagram represents the logical network organization.
 
-The internal management network uses the FortiGate's hardware-switch interface and is not itself a tagged VLAN.
-
-Inter-VLAN communication is governed by FortiGate firewall policies.
+It does not disclose actual network addresses, VLAN identifiers, or physical interface assignments.
 
 ---
 
-## 3. VLAN and Subnet Allocation
+## 3. IPv4 Addressing Standards
 
-### Verified VLAN Configuration
+The laboratory uses private IPv4 addresses consistent with RFC 1918.
 
-| VLAN ID | FortiGate Interface | Network | Subnet Mask | Default Gateway | Purpose |
-|---|---|---|---|---|---|
-| N/A | internal | 192.168.1.0/24 | 255.255.255.0 | 192.168.1.1 | Infrastructure management |
-| 10 | home_vlan | 10.1.10.0/24 | 255.255.255.0 | 10.1.10.1 | Home devices and administration |
-| 50 | work_vlan | 10.1.50.0/24 | 255.255.255.0 | 10.1.50.1 | Work devices |
-| 69 | security_vlan | 10.1.69.0/24 | 255.255.255.0 | 10.1.69.1 | Cybersecurity VMs and services |
-| 90 | gaming_vlan | 10.1.90.0/24 | 255.255.255.0 | 10.1.90.1 | Gaming infrastructure |
-| 220 | priv_wifi | 10.1.220.0/24 | 255.255.255.0 | 10.1.220.1 | Private wireless clients |
-| 221 | public_wifi | 10.1.221.0/24 | 255.255.255.0 | 10.1.221.1 | Public wireless clients |
+### Private IPv4 Addressing
 
-### Addressing Standards
+Private IPv4 addressing provides internal network connectivity without requiring globally routable addresses for individual devices.
 
-Each network uses a `/24` subnet.
+The laboratory uses private address space to organize systems according to network function.
 
-A `/24` network provides:
+### Subnet Design
 
-- 256 total IPv4 addresses.
-- 254 usable host addresses.
-- One network address.
-- One broadcast address.
+Each of the seven network segments currently uses a `/24` IPv4 subnet.
 
-The FortiGate uses the `.1` address as the default gateway on every network.
+A `/24` subnet provides:
 
-Where DHCP is configured, the current allocation range is generally `.100` through `.199`.
+| Property | Value |
+|---|---|
+| Prefix Length | /24 |
+| Subnet Mask | 255.255.255.0 |
+| Total IPv4 Addresses | 256 |
+| Usable Host Addresses | 254 |
+| Network Address | 1 |
+| Broadcast Address | 1 |
 
-Addresses outside the DHCP pools may be used for infrastructure or manually assigned devices, subject to avoiding conflicts.
+### Addressing Benefits
 
-**Important:** These are descriptions of the current addressing design, not automatic reservations of every address outside a DHCP pool.
+Using consistent subnet sizes provides:
+
+- Predictable network organization
+- Simplified troubleshooting
+- Consistent gateway configuration
+- Straightforward DHCP administration
+- Easier firewall policy management
+- Room for additional laboratory devices
+
+### Gateway Design
+
+The FortiGate provides the default gateway for each network segment.
+
+This centralizes routing and allows firewall policies to control communication between different networks.
+
+Exact gateway addresses are excluded from public documentation.
 
 ---
 
-## 4. FortiGate DHCP Configuration
+## 4. VLAN and Subnet Allocation
 
-The FortiGate 90D provides DHCP services for six network segments.
+The laboratory uses six VLANs and one untagged infrastructure management network.
 
-The Security VLAN does not have a DHCP server configured on the FortiGate.
+### Network Allocation
 
-### Verified DHCP Scopes
+| Network | VLAN-Based | Subnet Size | Primary Function |
+|---|---|---|---|
+| Infrastructure Management | No | /24 | Infrastructure Administration |
+| Home | Yes | /24 | Trusted Personal Devices |
+| Work | Yes | /24 | Work-Related Devices |
+| Security | Yes | /24 | SOC Laboratory |
+| Gaming | Yes | /24 | Gaming Infrastructure |
+| Private Wireless | Yes | /24 | Trusted Wireless Devices |
+| Public Wireless | Yes | /24 | Guest and Less-Trusted Devices |
 
-| Network | DHCP Server ID | DHCP Start | DHCP End | Gateway | Lease Time |
-|---|---|---|---|---|---|
-| Internal Management | 1 | 192.168.1.100 | 192.168.1.199 | 192.168.1.1 | 86,400 seconds |
-| Home — VLAN 10 | 6 | 10.1.10.100 | 10.1.10.199 | 10.1.10.1 | 86,400 seconds |
-| Work — VLAN 50 | 4 | 10.1.50.100 | 10.1.50.199 | 10.1.50.1 | 86,400 seconds |
-| Security — VLAN 69 | N/A | Not configured | Not configured | 10.1.69.1 | N/A |
-| Gaming — VLAN 90 | 7 | 10.1.90.100 | 10.1.90.199 | 10.1.90.1 | Default / not explicitly set |
-| Private Wi-Fi — VLAN 220 | 2 | 10.1.220.100 | 10.1.220.199 | 10.1.220.1 | 86,400 seconds |
-| Public Wi-Fi — VLAN 221 | 3 | 10.1.221.100 | 10.1.221.199 | 10.1.221.1 | 86,400 seconds |
+### VLAN Architecture
+
+The FortiGate maintains the VLAN interfaces used for Layer 3 routing.
+
+The Ubiquiti managed switch transports tagged traffic between infrastructure devices.
+
+Proxmox provides VLAN-aware virtual networking for security workloads.
+
+### Inter-VLAN Communication
+
+Traffic between different VLANs is routed through the FortiGate.
+
+Firewall policies determine which connections are permitted.
+
+The presence of a route between networks does not automatically authorize communication.
+
+Detailed VLAN architecture is documented in:
+
+`04_VLAN_Design.md`
+
+---
+
+## 5. DHCP Architecture
+
+The FortiGate provides DHCP services for six of the seven network segments.
+
+The Security VLAN does not currently use a FortiGate DHCP scope.
+
+### DHCP Scope Inventory
+
+| Network Segment | FortiGate DHCP | Address Assignment |
+|---|---|---|
+| Infrastructure Management | Enabled | Dynamic DHCP |
+| Home | Enabled | Dynamic DHCP |
+| Work | Enabled | Dynamic DHCP |
+| Security | Disabled | Static IPv4 |
+| Gaming | Enabled | DHCP and Reservation |
+| Private Wireless | Enabled | Dynamic DHCP |
+| Public Wireless | Enabled | Dynamic DHCP |
+
+### DHCP Responsibilities
+
+The FortiGate DHCP service provides client configuration information, including:
+
+- IPv4 address
+- Subnet mask
+- Default gateway
+- DNS server information
+- Lease duration
+- NTP service information
+
+### DHCP Allocation Strategy
+
+DHCP pools are configured within their respective network segments.
+
+Infrastructure systems requiring predictable addresses use static assignments or reservations where appropriate.
+
+Address assignments must be checked to prevent conflicts.
 
 ### DHCP Lease Duration
 
-Five DHCP scopes explicitly specify:
+Five DHCP scopes were verified with explicitly configured 24-hour leases.
 
-```text
-lease-time 86400
-```
+The Gaming network uses the FortiOS default lease duration because no explicit value was identified in the reviewed configuration.
 
-This corresponds to a 24-hour lease.
+The effective Gaming DHCP lease duration has not been independently verified.
 
-The Gaming VLAN does not explicitly define a lease duration in the reviewed configuration.
+### DHCP Time Synchronization
 
-Its effective lease duration is determined by the FortiOS default and has not been independently verified.
+The reviewed DHCP configuration advertises the FortiGate's local NTP service.
 
-### DHCP Services
+Time synchronization is important for:
 
-The FortiGate configuration also specifies:
+- Accurate security event timestamps
+- Log correlation
+- Authentication troubleshooting
+- Incident investigation
+- Consistent system operations
 
-```text
-ntp-service local
-```
+### Security Considerations
 
-for each configured DHCP scope.
+DHCP configuration is reviewed to ensure:
 
-The FortiGate therefore advertises its local NTP service through DHCP.
-
-The reviewed DHCP configuration uses the default timezone option.
-
----
-
-## 5. Security VLAN Addressing
-
-### VLAN 69 — Cybersecurity Infrastructure
-
-**Network:** `10.1.69.0/24`
-
-**Gateway:** `10.1.69.1`
-
-**FortiGate Interface:** `security_vlan`
-
-**DHCP Server:** None configured on the FortiGate
-
-This network hosts the primary cybersecurity monitoring and testing infrastructure.
-
-### Security VM Inventory
-
-| Hostname | IPv4 Address | Assignment Method | Operating System | Function |
-|---|---|---|---|---|
-| DSHIELD-01 | 10.1.69.70 | Static — user confirmed | Ubuntu 26.04 LTS | DShield/Cowrie honeypot |
-| WIN11-SOC-01 | 10.1.69.71 | Static — PowerShell verified | Windows 11 Pro | SOC testing endpoint |
-| WAZUH-01 | 10.1.69.72 | Static — Netplan verified | Ubuntu Server | Wazuh SIEM |
-
-### Security VLAN Address Allocation
-
-```text
-10.1.69.0       Network address
-10.1.69.1       FortiGate gateway
-
-10.1.69.70      DSHIELD-01
-10.1.69.71      WIN11-SOC-01
-10.1.69.72      WAZUH-01
-
-10.1.69.255     Broadcast address
-```
-
-Additional security infrastructure may be assigned addresses within this subnet as the lab expands.
-
-Future addresses must be checked against existing assignments before deployment.
-
-### Security VLAN Design Considerations
-
-The Security VLAN is isolated from other internal networks through explicit FortiGate firewall policies.
-
-Administrative access is provided through specific policies originating from the authorized home administrative workstation.
-
-The FortiGate also contains policies supporting selected inbound honeypot traffic and gaming-server telemetry.
-
-The existence of these policies does not imply unrestricted communication between VLANs.
+- Correct network assignment
+- Appropriate gateway distribution
+- Consistent DNS configuration
+- Address reservation accuracy
+- Avoidance of IP conflicts
 
 ---
 
-## 6. WAZUH-01 — Verified Static Configuration
+## 6. Static IPv4 Addressing
 
-The Wazuh server uses a statically configured IPv4 address through Ubuntu Netplan.
+Static IPv4 addressing is used for critical security infrastructure.
 
-### Network Configuration
+### Static Addressing Objectives
 
-| Setting | Value |
+Stable addresses simplify:
+
+- Firewall policy administration
+- Wazuh agent communication
+- Syslog forwarding
+- SSH administration
+- Security monitoring
+- Service configuration
+- Troubleshooting
+
+### Security Infrastructure Inventory
+
+| System | Operating System | Addressing Method | Purpose |
+|---|---|---|---|
+| DShield Honeypot | Ubuntu Server | Static IPv4 | Honeypot Operations |
+| Windows SOC Endpoint | Windows 11 Pro | Static IPv4 | Endpoint Security Testing |
+| Wazuh SIEM | Ubuntu Server | Static IPv4 | Centralized Security Monitoring |
+
+All three virtual machines operate within the dedicated Security VLAN.
+
+### Address Management
+
+Static addresses are assigned within the appropriate network segment.
+
+Before assigning additional addresses, existing assignments should be checked to prevent duplication.
+
+### Security Considerations
+
+Static addressing provides predictable connectivity but does not independently provide access control.
+
+Network access is governed by firewall policies, authentication, and applicable endpoint security controls.
+
+---
+
+## 7. Wazuh SIEM Network Configuration
+
+The Wazuh server operates as an Ubuntu Linux virtual machine.
+
+Its IPv4 configuration is managed through Ubuntu Netplan.
+
+### Verified Configuration
+
+| Setting | Configuration |
 |---|---|
-| Hostname | WAZUH-01 |
-| Interface | ens18 |
-| Address | 10.1.69.72/24 |
-| Subnet Mask | 255.255.255.0 |
-| Default Gateway | 10.1.69.1 |
-| Primary DNS | 1.1.1.1 |
-| Secondary DNS | 8.8.8.8 |
-| Assignment | Static |
-| VLAN | 69 |
+| Operating System | Ubuntu Server |
+| Address Assignment | Static IPv4 |
+| Network Interface | VirtIO Virtual Network Adapter |
+| Default Gateway | FortiGate Security Network Gateway |
+| DNS Configuration | Public DNS Resolvers |
+| Network Segment | Security VLAN |
+| Configuration Method | Ubuntu Netplan |
 
-### Verified Netplan Configuration
+### Netplan Configuration
 
-The relevant configuration is:
+Ubuntu Netplan provides declarative network configuration.
+
+The Wazuh server uses a static IPv4 address, default route, and manually configured DNS resolvers.
+
+### Example Sanitized Netplan Configuration
+
+The following example uses documentation-only addressing and does not represent the operational configuration.
 
 ```yaml
 network:
+  version: 2
   ethernets:
     ens18:
+      dhcp4: false
       addresses:
-        - 10.1.69.72/24
+        - 192.0.2.72/24
+      routes:
+        - to: default
+          via: 192.0.2.1
       nameservers:
         addresses:
           - 1.1.1.1
           - 8.8.8.8
-        search: []
-      routes:
-        - to: default
-          via: 10.1.69.1
-      set-name: ens18
-  version: 2
 ```
 
-The live configuration also contains a MAC-address match for the interface, omitted here because it is unnecessary for the public addressing plan.
+The example network belongs to the RFC 5737 documentation address space.
 
 ### Verification Commands
 
 ```bash
 ip -4 addr show
+```
+
+```bash
 ip route
+```
+
+```bash
 sudo cat /etc/netplan/*.yaml
 ```
 
-The routing table confirms:
+### Validation Status
 
-```text
-default via 10.1.69.1 dev ens18 proto static
-```
-
-**Status:** Static IP, gateway, and DNS configuration verified.
+The Wazuh server's static IPv4 address, default gateway, and DNS configuration were verified during the infrastructure review.
 
 ---
 
-## 7. WIN11-SOC-01 — Verified Static Configuration
+## 8. Windows SOC Endpoint Network Configuration
 
-The Windows 11 SOC endpoint uses a manually configured IPv4 address.
+The Windows SOC endpoint operates as a Windows 11 Pro virtual machine.
 
-### Network Configuration
+It uses a manually configured static IPv4 address.
 
-| Setting | Value |
+### Verified Configuration
+
+| Setting | Configuration |
 |---|---|
-| Hostname | WIN11-SOC-01 |
 | Operating System | Windows 11 Pro |
 | Network Adapter | Red Hat VirtIO Ethernet Adapter |
-| Interface | Ethernet |
-| IPv4 Address | 10.1.69.71 |
-| Subnet | 10.1.69.0/24 |
-| Default Gateway | 10.1.69.1 |
-| Primary DNS | 1.1.1.1 |
-| Secondary DNS | 8.8.8.8 |
+| IPv4 Assignment | Static |
 | DHCP | Disabled |
-| VLAN | 69 |
+| Default Gateway | FortiGate Security Network Gateway |
+| DNS Configuration | Public DNS Resolvers |
+| Network Segment | Security VLAN |
 
-### Verification Commands
+### PowerShell Verification
 
-Executed through PowerShell:
+The following commands were used to inspect the endpoint's network configuration.
+
+#### Verify DHCP Status
 
 ```powershell
 Get-NetIPInterface -AddressFamily IPv4 |
-Select-Object InterfaceAlias, Dhcp
+    Select-Object InterfaceAlias, Dhcp
 ```
 
-Result:
-
-```text
-InterfaceAlias                  Dhcp
---------------                  ----
-Ethernet                    Disabled
-Loopback Pseudo-Interface 1 Disabled
-```
-
-Additional commands:
+#### Review IP Configuration
 
 ```powershell
 Get-NetIPConfiguration
+```
+
+#### Review DNS Servers
+
+```powershell
 Get-DnsClientServerAddress -AddressFamily IPv4
 ```
 
-These confirmed the IPv4 address, gateway, and DNS servers.
+### Validation Status
 
-**Status:** Static IP, gateway, and DNS configuration verified.
+The Windows SOC endpoint's static IPv4 address, default gateway, and DNS configuration were verified through PowerShell.
 
 ### Future Active Directory Integration
 
-WIN11-SOC-01 is planned to become a domain-joined endpoint.
+The Windows SOC endpoint is planned to become a domain-joined system.
 
-Before joining the Active Directory domain, its DNS configuration will need to be updated to use a DNS server capable of resolving the Active Directory domain and its service records.
+Before joining the Active Directory domain, its DNS configuration will be updated to use a DNS server capable of resolving the Active Directory domain and its service records.
 
 The planned Windows Server domain controller is expected to provide this service.
-
-The domain controller should be configured to resolve external names through appropriate DNS forwarding or recursion.
 
 No Active Directory DNS changes have been implemented at the time of this documentation.
 
 ---
 
-## 8. DSHIELD-01 — Static Configuration
+## 9. DShield Honeypot Network Configuration
 
-### Network Configuration
+The DShield/Cowrie honeypot operates as a dedicated Ubuntu Linux virtual machine.
 
-| Setting | Value |
+### Addressing Configuration
+
+| Setting | Configuration |
 |---|---|
-| Hostname | DSHIELD-01 |
-| IPv4 Address | 10.1.69.70 |
-| Subnet | 10.1.69.0/24 |
-| Default Gateway | 10.1.69.1 |
-| Assignment | Static — user confirmed |
-| DNS | Not independently verified |
-| VLAN | 69 |
+| Operating System | Ubuntu Server |
+| IPv4 Assignment | Static |
+| Default Gateway | FortiGate Security Network Gateway |
+| Network Segment | Security VLAN |
+| DNS Configuration | Not Independently Verified |
 
-DSHIELD-01 hosts the DShield/Cowrie honeypot environment.
+### Network Purpose
 
-The system receives security-related traffic through FortiGate policies and associated inbound publishing configuration.
+The honeypot collects telemetry associated with unsolicited external activity.
 
-Management access is controlled separately from externally exposed honeypot services.
+Its network configuration supports controlled inbound connectivity through the FortiGate.
 
 ### Security Considerations
 
 The honeypot is intentionally exposed to selected external traffic.
 
-It must remain isolated from sensitive internal infrastructure.
+It remains separated from trusted infrastructure through the laboratory's network segmentation and firewall architecture.
 
-**The honeypot is not planned to join the future Active Directory domain.**
+Management connectivity is controlled separately from externally accessible honeypot services.
 
-Joining an internet-exposed honeypot to the lab domain would introduce unnecessary risk to the domain environment.
+### Active Directory Isolation
+
+The DShield honeypot is not planned to join the future Active Directory domain.
+
+Joining an intentionally exposed honeypot to the domain would introduce unnecessary risk to the identity infrastructure.
+
+### Validation Status
+
+The honeypot's static address assignment was confirmed during the infrastructure review.
+
+Its DNS configuration has not yet been independently verified.
 
 ---
 
-## 9. Gaming VLAN Addressing
+## 10. Gaming Network Addressing
 
-### VLAN 90 — Gaming Infrastructure
+The Gaming VLAN provides network connectivity for dedicated gaming infrastructure.
 
-**Network:** `10.1.90.0/24`
+A physical Windows computer hosts the Palworld dedicated server.
 
-**Gateway:** `10.1.90.1`
+### Server Configuration
 
-**DHCP Range:** `10.1.90.100–10.1.90.199`
-
-### GAME-SERVER-01
-
-| Setting | Value |
+| Setting | Configuration |
 |---|---|
-| Hostname | GAME-SERVER-01 |
 | Operating System | Windows 11 Pro |
-| IPv4 Address | 10.1.90.100 |
-| Default Gateway | 10.1.90.1 |
-| VLAN | 90 |
-| IP Assignment | DHCP reservation |
-| FortiGate DHCP Server ID | 7 |
-| Primary Function | Palworld dedicated server |
+| Primary Application | Palworld Dedicated Server |
+| Address Assignment | DHCP Reservation |
+| DHCP Server | FortiGate |
+| Network Segment | Gaming VLAN |
+| Security Monitoring | Wazuh Agent |
 
-The FortiGate DHCP configuration contains a reserved-address entry with:
+### DHCP Reservation
 
-```text
-set ip 10.1.90.100
-set description "GAME-SERVER-01"
-```
+The FortiGate maintains a DHCP reservation for the gaming server.
 
-The reservation is associated with the server's network adapter MAC address.
+This provides a predictable IPv4 address without requiring a manually configured static address on the Windows endpoint.
 
-The MAC address is intentionally omitted from this public document.
+### Benefits of DHCP Reservations
 
-### Gaming Server Security Integration
+- Centralized address management
+- Predictable server connectivity
+- Reduced risk of accidental address changes
+- Simplified firewall policy administration
+- Easier endpoint replacement and troubleshooting
 
-GAME-SERVER-01 has a Wazuh agent installed.
+### Security Monitoring
 
-The FortiGate includes a policy permitting the gaming server to communicate with WAZUH-01 using the configured Wazuh TCP service.
+The gaming server communicates with the Wazuh SIEM through an authorized cross-VLAN firewall policy.
 
-The gaming server also has a specific inbound policy associated with its Palworld UDP service.
+The server also supports controlled external connectivity for its dedicated gaming application.
 
----
-
-## 10. Infrastructure Management Network
-
-### Internal Network
-
-**Network:** `192.168.1.0/24`
-
-**Gateway:** `192.168.1.1`
-
-**FortiGate Interface:** `internal`
-
-This network is used for infrastructure management.
-
-### Infrastructure Inventory
-
-| Device | IP Address | Purpose |
-|---|---|---|
-| FortiGate 90D | 192.168.1.1 | Firewall and network gateway |
-| Ubiquiti Switch Lite 8 PoE | 192.168.1.2 | Managed network switching |
-| Proxmox VE — pve | 192.168.1.10 | Virtualization host |
-
-### DHCP Scope
-
-```text
-192.168.1.100 - 192.168.1.199
-```
-
-The current infrastructure addresses are outside this DHCP allocation range.
-
-### Administrative Access
-
-The primary administrative workstation is:
-
-```text
-TIC-PC
-10.1.10.50
-```
-
-It resides on Home VLAN 10.
-
-FortiGate firewall policies permit selected management access from this workstation to infrastructure systems and security VMs.
-
-Administrative access includes SSH and web-based management services where specifically permitted.
-
-Access to the FortiGate's own management interfaces is also subject to interface administrative-access and local-in controls, which are distinct from ordinary forwarded firewall policies.
+Exact destination addresses, service definitions, and external port mappings are excluded from public documentation.
 
 ---
 
-## 11. DNS Configuration
+## 11. Infrastructure Management Addressing
+
+The infrastructure management network provides connectivity for core networking and virtualization equipment.
+
+### Infrastructure Components
+
+| Component | Purpose |
+|---|---|
+| FortiGate 90D | Firewall and Network Gateway |
+| Ubiquiti Switch Lite 8 PoE | Managed Layer 2 Switching |
+| Proxmox VE Host | Virtualization Platform |
+
+### Network Configuration
+
+The management network operates through the FortiGate hardware switch interface.
+
+It is not implemented as a dedicated tagged VLAN.
+
+### Administrative Workstation
+
+A designated workstation within the trusted Home network is used to administer infrastructure systems.
+
+Applicable FortiGate policies permit authorized management traffic.
+
+### Management Technologies
+
+- SSH
+- HTTPS-based administration
+- PowerShell
+- Proxmox management tools
+- FortiGate administration
+- UniFi Network
+
+### Security Considerations
+
+Management access is controlled through applicable firewall policies, authentication, and device-level access restrictions.
+
+Exact management addresses and administrative access configurations are excluded from this public document.
+
+---
+
+## 12. DNS Architecture
 
 DNS is configured at multiple levels throughout the HomeLAB.
 
-The FortiGate system DNS settings differ from the DNS servers distributed to DHCP clients.
+The FortiGate system DNS configuration differs from the DNS settings distributed to DHCP clients.
 
-### 11.1 FortiGate System DNS
+Selected security endpoints also use manually configured DNS resolvers.
 
-Verified using:
+### DNS Configuration Overview
 
-```text
-show system dns
-```
-
-| Priority | DNS Server |
+| Component | DNS Configuration |
 |---|---|
-| Primary | 208.91.112.53 |
-| Secondary | 208.91.112.52 |
+| FortiGate System | Configured DNS Resolvers |
+| FortiGate DHCP Clients | DNS Resolvers Distributed Through DHCP |
+| Wazuh SIEM | Manually Configured Public DNS |
+| Windows SOC Endpoint | Manually Configured Public DNS |
+| DShield Honeypot | Not Independently Verified |
+| Future Active Directory Clients | Planned Internal AD DNS |
 
-These are the DNS resolvers configured for the FortiGate itself.
+### FortiGate System DNS
 
-### 11.2 DNS Distributed Through DHCP
+The FortiGate maintains DNS resolver settings for its own operations.
 
-All six configured FortiGate DHCP scopes specify:
+These settings are separate from DNS servers distributed to clients through DHCP.
 
-| Priority | DNS Server | Provider |
-|---|---|---|
-| Primary | 208.67.222.222 | OpenDNS |
-| Secondary | 208.67.220.220 | OpenDNS |
+### DHCP DNS Distribution
 
-These addresses are advertised to clients through DHCP.
+FortiGate DHCP scopes advertise configured DNS resolvers to supported client networks.
 
-Individual devices may use different DNS servers if their operating systems have manually configured DNS settings.
+Clients with manually configured DNS settings may use different resolvers.
 
-### 11.3 WAZUH-01 DNS
+### Wazuh DNS
 
-| Priority | DNS Server | Provider |
-|---|---|---|
-| Primary | 1.1.1.1 | Cloudflare |
-| Secondary | 8.8.8.8 | Google |
+The Wazuh server uses manually configured public DNS resolvers through Ubuntu Netplan.
 
-Configured directly through Ubuntu Netplan.
+### Windows SOC DNS
 
-### 11.4 WIN11-SOC-01 DNS
+The Windows SOC endpoint uses manually configured public DNS resolvers.
 
-| Priority | DNS Server | Provider |
-|---|---|---|
-| Primary | 1.1.1.1 | Cloudflare |
-| Secondary | 8.8.8.8 | Google |
+### DShield DNS
 
-Configured directly in Windows.
+The honeypot's DNS configuration has not yet been independently verified.
 
-### 11.5 DSHIELD-01 DNS
+### Future Active Directory DNS
 
-The DNS configuration has not yet been independently verified.
+The planned Windows Server domain controller will provide internal DNS services required for Active Directory.
 
-Its static IP assignment and address are user-confirmed.
+Domain-joined clients will use DNS servers capable of resolving the Active Directory namespace and required service records.
 
-### DNS Summary
-
-| Device / Network | DNS Configuration |
-|---|---|
-| FortiGate system | 208.91.112.53 / 208.91.112.52 |
-| FortiGate DHCP clients | 208.67.222.222 / 208.67.220.220 |
-| WAZUH-01 | 1.1.1.1 / 8.8.8.8 |
-| WIN11-SOC-01 | 1.1.1.1 / 8.8.8.8 |
-| DSHIELD-01 | Not yet verified |
-| Future AD domain clients | Planned internal AD DNS |
+External DNS resolution will be supported through appropriate forwarding or recursion.
 
 ---
 
-## 12. IP Address Assignment Methods
+## 13. IP Address Assignment Methods
 
-The HomeLAB currently uses both static IPv4 assignments and DHCP.
+The HomeLAB uses both static IPv4 assignments and DHCP.
 
-### Verified or Confirmed Assignments
+### Address Assignment Inventory
 
-| Device | IPv4 Address | Assignment Method | Verification |
-|---|---|---|---|
-| FortiGate internal | 192.168.1.1 | Configured interface address | FortiGate CLI |
-| FortiGate VLAN gateways | Various `.1` addresses | Configured interface addresses | FortiGate CLI |
-| DSHIELD-01 | 10.1.69.70 | Static | User confirmed |
-| WIN11-SOC-01 | 10.1.69.71 | Static | PowerShell |
-| WAZUH-01 | 10.1.69.72 | Static | Ubuntu Netplan |
-| GAME-SERVER-01 | 10.1.90.100 | DHCP reservation | FortiGate CLI |
+| Component | Assignment Method | Verification |
+|---|---|---|
+| FortiGate Gateway Interfaces | Configured Interface Addresses | FortiGate CLI |
+| DShield Honeypot | Static IPv4 | Confirmed |
+| Windows SOC Endpoint | Static IPv4 | PowerShell |
+| Wazuh SIEM | Static IPv4 | Ubuntu Netplan |
+| Gaming Server | DHCP Reservation | FortiGate CLI |
+| General Network Clients | DHCP | FortiGate Configuration |
+| Proxmox Host | Not Independently Established | Address Verified |
+| Ubiquiti Switch | Not Independently Established | Address Verified |
+| Administrative Workstation | Not Independently Established | Address Verified |
 
-The assignment methods for the Ubiquiti switch, Proxmox host, and TIC-PC have not been independently established in this document.
+### Static Addressing
 
-Their addresses are documented, but no unsupported assumption is made about whether they use manually configured addresses or DHCP reservations.
+Static addressing is used where predictable network connectivity is important.
 
----
+### Dynamic Addressing
 
-## 13. FortiGate Address Objects
+DHCP is used for supported general-purpose client networks.
 
-The FortiGate contains address objects corresponding to major HomeLAB devices.
+### Reservations
 
-### Host Address Objects
+DHCP reservations are used for selected systems that require consistent addressing while retaining centralized DHCP management.
 
-| Address Object | IPv4 Address |
-|---|---|
-| Fortigate_mgmt | 192.168.1.1/32 |
-| Ubiquity_Switch | 192.168.1.2/32 |
-| PVE_Host | 192.168.1.10/32 |
-| Tic_PC | 10.1.10.50/32 |
-| DSHIELD_Honeypot | 10.1.69.70/32 |
-| WIN11-SOC-01 | 10.1.69.71/32 |
-| WAZUH-01 | 10.1.69.72/32 |
-| GAME-SERVER-01 | 10.1.90.100/32 |
+### Addressing Validation
 
-These objects are used to reference devices in firewall policies.
-
-The object names reflect the actual FortiGate naming conventions, including their existing capitalization and spelling.
-
-### Network Address Objects
-
-| Address Object | Network |
-|---|---|
-| internal_lan | 192.168.1.0/24 |
-| home_lan | 10.1.10.0/24 |
-| work_lan | 10.1.50.0/24 |
-| security_lan | 10.1.69.0/24 |
-| gaming_lan | 10.1.90.0/24 |
-| priv_wifi | 10.1.220.0/24 |
-| public_wifi | 10.1.221.0/24 |
-
-### Legacy Address Object
-
-The FortiGate also contains:
-
-```text
-Ubuntu_Server_VM
-192.168.1.20/32
-```
-
-This object had zero references when previously reviewed.
-
-It may be associated with retired infrastructure.
-
-Its original purpose has not been conclusively verified, so it should be reviewed before removal.
+Before assigning additional addresses, the administrator should verify that the selected address is not already in use.
 
 ---
 
-## 14. Planned Windows Server and Active Directory
+## 14. FortiGate Address Objects
+
+FortiGate address objects provide reusable references for firewall policies.
+
+### Address Object Categories
+
+The environment uses address objects representing:
+
+- Firewall management infrastructure
+- Managed switching infrastructure
+- Proxmox virtualization host
+- Administrative workstation
+- DShield honeypot
+- Windows SOC endpoint
+- Wazuh SIEM
+- Dedicated gaming server
+- Network segments
+
+### Address Object Benefits
+
+Address objects simplify firewall policy administration by allowing logical infrastructure references.
+
+Benefits include:
+
+- Improved configuration consistency
+- Simplified policy management
+- Easier troubleshooting
+- Reduced repetitive configuration
+- Clearer policy organization
+
+### Legacy Address Object Review
+
+A legacy address object associated with a retired Ubuntu management workload was identified during the infrastructure review.
+
+The object had no observed references at the time of inspection.
+
+It is a candidate for cleanup after confirming that it is no longer required.
+
+### Public Documentation
+
+Actual address object names and their associated IP addresses are intentionally excluded.
+
+---
+
+## 15. Planned Windows Server and Active Directory
 
 A future phase of the HomeLAB will introduce a Windows Server virtual machine running Active Directory Domain Services.
 
 ### Planned Capabilities
 
-- Active Directory Domain Services (AD DS)
+- Active Directory Domain Services
 - Internal DNS
 - Group Policy
 - Domain user and computer management
-- Domain joining WIN11-SOC-01
+- Domain joining the Windows SOC endpoint
 - Windows authentication and security event generation
-- Additional identity-related SOC testing
+- Identity-related SOC testing
 
 ### Addressing Requirements
 
@@ -610,41 +682,55 @@ The future domain controller will require:
 2. A defined subnet and default gateway.
 3. Internal DNS configuration.
 4. Appropriate firewall access from domain clients.
-5. An IP address that does not conflict with existing infrastructure.
+5. An address that does not conflict with existing infrastructure.
 
-**No IP address has been assigned to the future domain controller.**
+### Current Status
 
-The final placement and addressing will be determined during the Windows Server deployment.
+No IP address has been assigned to the future domain controller.
+
+The final network placement and addressing will be determined during deployment.
 
 ### DNS Migration Considerations
 
 Once Active Directory DNS is deployed:
 
-- WIN11-SOC-01 will use the internal domain DNS server.
+- The Windows SOC endpoint will use internal domain DNS.
 - The domain controller will host the required Active Directory DNS records.
 - External DNS resolution will be provided through configured forwarding or recursion.
-- Other network segments will not automatically be migrated to AD DNS unless required.
+- Other network segments will not automatically migrate to AD DNS unless required.
 
-The internet-exposed DSHIELD honeypot will remain outside the Active Directory domain.
+### Honeypot Isolation
+
+The internet-exposed DShield honeypot will remain outside the Active Directory domain.
 
 ---
 
-## 15. Planned Linux Container
+## 16. Planned Linux Container
 
 A future Proxmox LXC container is being considered for an AI-assisted cybersecurity job discovery application.
 
 The application is intended to help identify SOC Analyst and Junior Security Engineer opportunities.
 
+### Planned Capabilities
+
+- Job board API integration
+- Permitted web scraping
+- AI-assisted job classification
+- Automated job filtering
+- Duplicate detection
+- Scheduled searches
+- Job notifications
+
 ### Addressing Status
 
 | Item | Status |
 |---|---|
-| Deployment platform | Proxmox LXC — planned |
-| Container hostname | Not assigned |
-| VLAN | Not assigned |
-| IPv4 address | Not assigned |
-| DHCP/static decision | Pending |
-| DNS configuration | Pending |
+| Deployment Platform | Proxmox LXC — Planned |
+| Container Hostname | Not Assigned |
+| Network Segment | Not Assigned |
+| IPv4 Address | Not Assigned |
+| DHCP/Static Decision | Pending |
+| DNS Configuration | Pending |
 
 The container will receive an address appropriate to its selected network and access requirements.
 
@@ -652,9 +738,7 @@ No dedicated virtual machine is required solely for this planned application.
 
 ---
 
-## 16. Addressing and Security Principles
-
-The HomeLAB follows these general addressing principles:
+## 17. Addressing and Security Principles
 
 ### Network Separation
 
@@ -689,31 +773,43 @@ The presence of a route between networks does not automatically mean traffic is 
 
 Management access is provided through the authorized administrative workstation and applicable FortiGate policies.
 
-### Public Documentation
+### Public Documentation Security
 
-This document includes private RFC 1918 addresses because they describe the lab's internal architecture.
+This public document intentionally excludes:
 
-Passwords, API keys, public WAN addresses, and unnecessary hardware identifiers are excluded.
+- Actual IP assignments
+- VLAN identifiers
+- Gateway addresses
+- DHCP pool boundaries
+- Administrative endpoints
+- Device MAC addresses
+- Firewall address object mappings
+- Public WAN addresses
+- Passwords and API keys
+
+Detailed operational addressing information is maintained separately from the public repository.
 
 ---
 
-## 17. Verification Commands
+## 18. Verification Commands
+
+The following commands can be used to verify addressing and network configuration.
 
 ### FortiGate — DHCP
 
-```shell
+```text
 show system dhcp server
 ```
 
 ### FortiGate — DNS
 
-```shell
+```text
 show system dns
 ```
 
 ### FortiGate — Interfaces and VLANs
 
-```shell
+```text
 show system interface
 ```
 
@@ -739,7 +835,7 @@ sudo cat /etc/netplan/*.yaml
 
 ```powershell
 Get-NetIPInterface -AddressFamily IPv4 |
-Select-Object InterfaceAlias, Dhcp
+    Select-Object InterfaceAlias, Dhcp
 ```
 
 ### Windows — Network Configuration
@@ -754,62 +850,136 @@ Get-NetIPConfiguration
 Get-DnsClientServerAddress -AddressFamily IPv4
 ```
 
+These commands provide practical methods for validating the operational configuration without publishing sensitive command output.
+
 ---
 
-## 18. Validation Status
+## 19. Validation Status
+
+The following addressing components were reviewed during the October 20, 2026 infrastructure assessment.
 
 | Component | Status |
 |---|---|
-| FortiGate internal IP | Verified |
-| VLAN IDs | Verified |
-| VLAN interface addresses | Verified |
-| Default gateways | Verified |
-| DHCP scopes | Verified |
-| DHCP-configured DNS | Verified |
-| FortiGate system DNS | Verified |
-| WAZUH-01 static IP | Verified |
-| WAZUH-01 gateway and DNS | Verified |
-| WIN11-SOC-01 static IP | Verified |
-| WIN11-SOC-01 gateway and DNS | Verified |
-| DSHIELD-01 static IP | User confirmed |
-| DSHIELD-01 DNS | Not independently verified |
-| GAME-SERVER-01 DHCP reservation | Verified |
-| Gaming DHCP effective lease duration | Not independently verified |
-| Future Active Directory addressing | Planned |
-| Future LXC addressing | Planned |
+| FortiGate Internal Addressing | Verified |
+| VLAN Interfaces | Verified |
+| VLAN Gateway Addresses | Verified |
+| Default Gateways | Verified |
+| DHCP Scopes | Verified |
+| DHCP-Distributed DNS | Verified |
+| FortiGate System DNS | Verified |
+| Wazuh Static IPv4 | Verified |
+| Wazuh Gateway and DNS | Verified |
+| Windows SOC Static IPv4 | Verified |
+| Windows SOC Gateway and DNS | Verified |
+| DShield Static IPv4 | Confirmed |
+| DShield DNS | Not Independently Verified |
+| Gaming Server DHCP Reservation | Verified |
+| Gaming DHCP Effective Lease Duration | Not Independently Verified |
+| Future Active Directory Addressing | Planned |
+| Future LXC Addressing | Planned |
+
+### Validation Limitations
+
+The review established the configuration of the listed addressing components.
+
+It does not independently validate every client lease, network communication path, or firewall restriction.
 
 ---
 
-## 19. Future Improvements
+## 20. Future Improvements
 
 Potential future improvements include:
 
-- Documenting the effective DNS configuration of DSHIELD-01.
-- Confirming the assignment methods of the Proxmox host and Ubiquiti switch.
+- Documenting the effective DNS configuration of the DShield honeypot.
+- Confirming the address assignment methods of the Proxmox host and Ubiquiti switch.
 - Recording the effective Gaming VLAN DHCP lease duration.
 - Implementing internal Active Directory DNS.
 - Assigning a static IP address to the future domain controller.
-- Updating WIN11-SOC-01 DNS before joining the domain.
-- Maintaining an inventory of additional infrastructure IP addresses.
+- Updating the Windows SOC endpoint's DNS before joining the domain.
+- Maintaining an inventory of additional infrastructure addresses.
 - Reviewing unused legacy FortiGate address objects.
-- Creating updated network diagrams reflecting the finalized addressing scheme.
+- Creating updated network diagrams reflecting the finalized addressing architecture.
 
 ---
 
-## 20. Summary
+## 21. Lessons Learned
 
-The CyberSecurity HomeLAB uses seven IPv4 network segments:
+Implementing and administering the IP addressing architecture has provided practical experience with:
 
-- One internal infrastructure management network.
-- Six dedicated VLANs.
-- Six FortiGate DHCP scopes.
-- One Security VLAN without FortiGate DHCP.
-- Static IPv4 assignments for the primary security VMs.
-- A DHCP reservation for the Palworld gaming server.
-- Separate DNS configurations for FortiGate services, DHCP clients, and selected security endpoints.
+- IPv4 addressing
+- Subnetting
+- DHCP administration
+- Static IP configuration
+- DHCP reservations
+- DNS configuration
+- Default gateway management
+- Inter-VLAN routing
+- Firewall address objects
+- Linux network administration
+- Windows PowerShell networking
+- Infrastructure troubleshooting
 
-This addressing structure supports network segmentation, controlled administrative access, centralized security monitoring, and future Active Directory integration.
+### Key Technical Lessons
 
-**Document Status:** Current addressing configuration documented and validated, with remaining exceptions explicitly identified.
+**Consistent addressing simplifies administration.**
+
+Using predictable network structures reduces complexity when troubleshooting connectivity.
+
+**Static addresses support critical infrastructure.**
+
+Security monitoring systems benefit from stable network assignments.
+
+**DHCP reservations provide centralized control.**
+
+Reservations allow selected systems to maintain predictable addresses without requiring manual endpoint configuration.
+
+**DNS is essential for Active Directory.**
+
+Domain-joined systems must be able to resolve the Active Directory domain and its required service records.
+
+**Network routing and network authorization are separate functions.**
+
+A valid route does not automatically mean that a firewall policy permits communication.
+
+**Accurate documentation improves infrastructure reliability.**
+
+Maintaining verified addressing records supports troubleshooting, expansion, and recovery.
+
+---
+
+## 22. Documentation References
+
+Related documentation includes:
+
+- `01_Project_Overview.md`
+- `02_Hardware_Inventory.md`
+- `03_Network_Architecture.md`
+- `04_VLAN_Design.md`
+- `06_Proxmox_Configuration.md`
+- `07_FortiGate_Configuration.md`
+- `08_Ubiquiti_Switch_Configuration.md`
+- `09_Ubuntu_Server.md`
+- `10_DShield_Honeypot.md`
+- `11_Backup_and_Recovery.md`
+
+---
+
+## 23. Summary
+
+The CyberSecurity-HomeLab uses seven IPv4 network segments to support logical separation of infrastructure and services.
+
+The environment includes:
+
+- Six VLANs
+- One untagged infrastructure management network
+- Six FortiGate DHCP scopes
+- Static IPv4 assignments for primary security systems
+- DHCP reservations for selected infrastructure
+- Separate DNS configurations for network and endpoint services
+- Centralized routing and firewall enforcement
+
+The addressing architecture supports network segmentation, controlled administrative access, centralized security monitoring, and future Active Directory integration.
+
+**Document Status:** Current addressing architecture documented and validated, with remaining exceptions explicitly identified.
 
 **Last Reviewed:** October 20, 2026
