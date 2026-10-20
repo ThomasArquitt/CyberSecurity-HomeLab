@@ -1,222 +1,153 @@
-# Network Architecture
+# 03 — Network Architecture
 
-## Purpose
+## 1. Overview
 
 This document describes the physical and logical network architecture of the CyberSecurity-HomeLab environment.
 
-The laboratory is designed using enterprise-inspired networking principles, including network segmentation, centralized firewall management, controlled access between network segments, and centralized security monitoring.
+The laboratory is designed using enterprise-inspired networking principles, including network segmentation, centralized firewall management, controlled communication between network segments, and centralized security monitoring.
 
-The architecture supports infrastructure administration, Security Operations Center (SOC) investigations, detection engineering, endpoint monitoring, and controlled adversary simulation.
+The architecture supports:
+
+- Infrastructure administration
+- Security Operations Center (SOC) investigations
+- Detection engineering
+- Endpoint monitoring
+- Network security administration
+- Controlled adversary simulation
+- Virtualization
+- Security telemetry collection
+- Future identity security monitoring
 
 The environment combines physical networking equipment, virtualized infrastructure, dedicated security monitoring systems, and a segmented gaming server environment.
 
 **Last Updated:** October 20, 2026
 
+> **Security Note:** This document provides a sanitized representation of the operational network architecture. Public IP addresses, internal IP assignments, exact VLAN identifiers, administrative endpoints, firewall policy identifiers, device serial numbers, and sensitive configuration details are intentionally excluded.
+
 ---
 
-## Design Goals
+## 2. Network Design Goals
 
 The network was designed with the following objectives:
 
 - Separate trusted and untrusted systems.
-- Minimize lateral movement between network segments.
+- Minimize opportunities for lateral movement.
 - Centralize routing and firewall policy enforcement.
 - Implement logical network segmentation using VLANs.
-- Isolate security testing infrastructure from personal devices.
+- Isolate security testing infrastructure from personal and work devices.
 - Restrict administrative access to authorized systems.
 - Collect network and endpoint security telemetry.
 - Support controlled adversary simulation.
 - Maintain reliable network connectivity.
-- Provide a scalable architecture for future expansion.
+- Support future infrastructure expansion.
+- Provide practical experience with enterprise networking technologies.
 
 The overall design emphasizes security, maintainability, visibility, and controlled communication between systems.
 
+### Security Principles
+
+The architecture incorporates several foundational security concepts.
+
+**Defense in Depth**
+
+Multiple security controls are used to reduce dependence on any single protective mechanism.
+
+**Least Privilege**
+
+Network access is intended to be limited to communication required for authorized operations.
+
+**Network Segmentation**
+
+Systems are separated according to their purpose and trust requirements.
+
+**Centralized Monitoring**
+
+Security telemetry is collected and analyzed through Wazuh.
+
+**Controlled Administrative Access**
+
+Infrastructure administration is restricted to authorized systems and accounts.
+
 ---
 
-## High-Level Architecture
+## 3. High-Level Network Architecture
 
 The CyberSecurity-HomeLab utilizes a FortiGate 90D firewall as its primary network gateway and security enforcement point.
 
-Internet connectivity is provided through a Breezeline fiber connection terminating at an Optical Network Terminal (ONT).
+Internet connectivity is provided through a residential fiber connection.
 
-The ONT provides an Ethernet handoff to the FortiGate WAN1 interface.
-
-The FortiGate provides:
-
-- Internet gateway functionality
-- VLAN routing
-- Inter-VLAN firewall policies
-- Network Address Translation (NAT)
-- DHCP services
-- Network traffic logging
-- Administrative access restrictions
+The FortiGate connects the external network to the internal switching infrastructure.
 
 A Ubiquiti Switch Lite 8 PoE provides managed Layer 2 connectivity between the firewall, virtualization infrastructure, wireless access points, and other network devices.
 
-The primary virtualization platform is a Proxmox VE 9.2 host running three virtual machines.
+The primary virtualization platform is a Proxmox VE host running three active security virtual machines.
 
-A dedicated physical Windows 11 server hosts the Palworld game server within a segmented gaming network.
+A dedicated physical Windows computer hosts a Palworld game server within a segmented gaming network.
 
-### Logical Network Architecture
+### Physical and Logical Architecture
 
 ```text
                          INTERNET
                             |
                             |
-                     Breezeline Fiber
+                     ISP EQUIPMENT
                             |
                             |
-                         Fiber ONT
+                     FORTIGATE 90D
+                    FIREWALL / GATEWAY
                             |
                             |
-                      FortiGate 90D
-                     Firewall / Gateway
+                   UBIQUITI MANAGED
+                       SWITCH
                             |
-                            |
-                  Ubiquiti Switch Lite
-                         8 PoE
-                            |
-          +-----------------+------------------+
-          |                 |                  |
-          |                 |                  |
-      Proxmox VE        Ubiquiti APs       Other Network
-      Hypervisor         (2 Units)          Devices
-          |
-          |
-    +-----+-----------------------+
-    |             |               |
-    |             |               |
- DSHIELD-01   WIN11-SOC-01     WAZUH-01
-    |             |               |
-    |             |               |
- SSH Honeypot   SOC Endpoint    Wazuh SIEM
-    |             |               |
-    +-------------+---------------+
-                  |
-                  |
-          Security Monitoring
+             +--------------+--------------+
+             |              |              |
+             |              |              |
+         PROXMOX VE      WIRELESS       OTHER WIRED
+         HYPERVISOR    ACCESS POINTS     DEVICES
+             |              |
+             |              |
+       +-----+-----+    +---+---+
+       |     |     |    |       |
+       |     |     |  PRIVATE  PUBLIC
+       |     |     |  WIRELESS WIRELESS
+       |     |     |
+       v     v     v
+    DSHIELD WINDOWS WAZUH
+    HONEYPOT SOC VM  SIEM
 
 
-          SEPARATE GAMING NETWORK
-
-                Gaming VLAN
-                    |
-                    |
-             GAME-SERVER-01
-              Windows 11 Pro
-                    |
-                    |
-             Palworld Server
-                    |
-                    |
-              Wazuh Agent
+              SEPARATE GAMING NETWORK
+                        |
+                        |
+                   GAMING VLAN
+                        |
+                        |
+                 PHYSICAL WINDOWS
+                    GAME SERVER
+                        |
+                        |
+                  PALWORLD SERVER
+                        |
+                        |
+                    WAZUH AGENT
 ```
 
 This diagram represents the logical relationships between infrastructure components.
 
-The exact physical switch ports, VLAN assignments, and network interface configurations are documented separately.
+It is not intended to disclose exact physical switch ports, interface assignments, or firewall configurations.
 
-The detailed network architecture diagram will be updated after the documentation refresh is completed.
-
----
-
-## Network Segments
-
-The environment utilizes multiple logical network segments to separate systems based on purpose and security requirements.
-
-| Network Segment | Purpose |
-|-----------------|---------|
-| Home / Internal LAN | Trusted personal devices and internal infrastructure |
-| Work VLAN 50 | Work-related devices and network isolation |
-| Management Access | Restricted infrastructure administration |
-| Public Wireless Network | Less-trusted wireless connectivity |
-| Private Wireless Network | Trusted wireless connectivity |
-| Gaming VLAN | Dedicated gaming infrastructure |
-
-### Home / Internal LAN
-
-The internal network provides connectivity for trusted personal devices and authorized laboratory infrastructure.
-
-The primary internal network utilizes:
-
-`192.168.1.0/24`
-
-This network supports communication between authorized systems and internal infrastructure services.
-
-### Work VLAN
-
-VLAN 50 provides a dedicated network segment for work-related systems.
-
-Separating work devices from personal and laboratory systems helps reduce unnecessary communication between different device categories.
-
-Traffic between network segments is controlled through FortiGate firewall policies.
-
-### Management Access
-
-Infrastructure management access is restricted to authorized administrative systems.
-
-Managed services include:
-
-- FortiGate administration
-- Proxmox administration
-- Ubiquiti network management
-- SSH administration
-- Wazuh dashboard administration
-
-Administrative access is controlled through firewall policies and device-level authentication.
-
-Management access restrictions do not necessarily require a dedicated management VLAN.
-
-### Public and Private Wireless Networks
-
-Two Ubiquiti wireless access points provide wireless connectivity across the property.
-
-The wireless environment includes:
-
-- Public SSID
-- Private SSID
-
-These networks provide connectivity options for devices with different trust requirements.
-
-Wireless traffic is integrated into the broader network segmentation strategy.
-
-### Gaming VLAN
-
-The Gaming VLAN provides logical separation for gaming-related infrastructure.
-
-The dedicated Palworld server operates within this network segment.
-
-**Verified server information:**
-
-| Component | Details |
-|-----------|---------|
-| Hostname | GAME-SERVER-01 |
-| Operating System | Windows 11 Pro |
-| IP Address | 10.1.90.100 |
-| Primary Application | Palworld Dedicated Server |
-| Security Monitoring | Wazuh Agent |
-| Monitoring Status | Active |
-
-The Gaming VLAN supports:
-
-- Dedicated game server hosting
-- DHCP reservations
-- Controlled firewall access
-- UDP application traffic
-- Network isolation
-- Endpoint security monitoring
-
-FortiGate firewall policies control permitted communication between the Gaming VLAN and other network segments.
+A detailed graphical network diagram will be added after the documentation refresh is completed.
 
 ---
 
-## Infrastructure Components
+## 4. Network Infrastructure Components
 
-### FortiGate 90D Firewall
+### 4.1 FortiGate Firewall
 
 The FortiGate 90D serves as the primary network gateway and firewall.
 
-Responsibilities include:
+Its responsibilities include:
 
 - WAN connectivity
 - Network routing
@@ -227,179 +158,422 @@ Responsibilities include:
 - Administrative access restrictions
 - Traffic logging
 - Syslog forwarding
+- Controlled external service exposure
 
 The FortiGate provides centralized control over communication between network segments.
 
 Firewall policies permit authorized communication while restricting unnecessary access.
 
-The firewall's implicit deny behavior blocks traffic that does not match an applicable allow policy.
+Traffic that does not match an applicable allow policy is subject to the firewall's implicit deny behavior.
 
-### Ubiquiti Switch Lite 8 PoE
+### 4.2 Ubiquiti Managed Switch
 
-The Ubiquiti managed switch provides Layer 2 connectivity for the laboratory infrastructure.
+The HomeLAB uses a UniFi Switch Lite 8 PoE.
+
+The switch provides managed Layer 2 connectivity for the laboratory infrastructure.
 
 Responsibilities include:
 
 - VLAN-aware switching
+- IEEE 802.1Q VLAN tagging
 - Connectivity between network devices
 - Power over Ethernet delivery
 - Wireless access point connectivity
 - Managed network administration
+- Ethernet link monitoring
 
-The switch provides connectivity between the firewall, virtualization infrastructure, wireless access points, and additional network devices.
+The switch transports tagged traffic between infrastructure components.
 
-### Ubiquiti Wireless Access Points
+The FortiGate performs Layer 3 routing and firewall policy enforcement between network segments.
 
-Two Ubiquiti wireless access points provide network coverage across multiple physical locations.
+### 4.3 Wireless Access Points
 
-The access points support Public and Private wireless networks.
+Two Ubiquiti UAP-AC-Pro wireless access points provide network coverage across separate physical locations.
+
+Both access points connect directly to the managed switch.
+
+Power is delivered through PoE.
+
+The access points support separate wireless networks for trusted and less-trusted devices.
 
 Wireless connectivity is integrated into the laboratory's network segmentation strategy.
 
-### Proxmox VE Hypervisor
+### 4.4 Proxmox Hypervisor
 
 The primary virtualization host runs Proxmox VE 9.2.
 
-The host provides virtualized infrastructure for security monitoring, endpoint testing, and adversary simulation.
+The host provides virtualized infrastructure for:
 
-**Verified virtual machine inventory:**
+- Security monitoring
+- Endpoint testing
+- Adversary simulation
+- Honeypot operations
+- Detection engineering
 
-| VM ID | Hostname | Operating System | RAM | Boot Disk |
-|-------|----------|------------------|-----|-----------|
-| 101 | DSHIELD-01 | Ubuntu Linux | 4 GB | 40 GB |
-| 102 | WIN11-SOC-01 | Windows 11 | 8 GB | 80 GB |
-| 103 | WAZUH-01 | Ubuntu Server | 8 GB | 80 GB |
+Proxmox virtual networking provides connectivity between guest systems and the physical network.
 
-The virtual machines communicate through the network interfaces and virtual networking configuration provided by Proxmox.
+### 4.5 Dedicated Gaming Server
 
-Network access is governed by the applicable firewall policies and network segmentation configuration.
+A dedicated physical Windows computer hosts the Palworld game server.
 
----
+The server operates within a separate gaming network.
 
-## Verified Security Endpoint Inventory
+The environment provides additional experience with:
 
-The Wazuh dashboard was reviewed on October 20, 2026, to verify registered security monitoring agents.
+- Windows administration
+- Dedicated application hosting
+- Network segmentation
+- Firewall policies
+- DHCP reservations
+- UDP application traffic
+- REST API configuration
+- Scheduled task automation
+- Endpoint security monitoring
 
-### Active Wazuh Agents
-
-| Agent ID | Hostname | IP Address | Operating System | Agent Version | Status |
-|----------|----------|------------|------------------|---------------|--------|
-| 001 | WIN11-SOC-01 | 10.1.69.71 | Windows 11 Pro | 4.14.7 | Active |
-| 002 | DSHIELD-01 | 10.1.69.70 | Ubuntu 26.04 LTS | 4.14.7 | Active |
-| 003 | GAME-SERVER-01 | 10.1.90.100 | Windows 11 Pro | 4.14.7 | Active |
-
-### Agent Monitoring Summary
-
-| Metric | Value |
-|--------|-------|
-| Registered Agents | 3 |
-| Active Agents | 3 |
-| Disconnected Agents | 0 |
-| Pending Agents | 0 |
-| Windows Endpoints | 2 |
-| Ubuntu Endpoints | 1 |
-| Agent Group | default |
-| Agent Version | 4.14.7 |
-
-All three monitored endpoints were confirmed as actively connected to Wazuh.
-
-The environment provides centralized endpoint monitoring across both Windows and Linux systems.
+A Wazuh agent provides security telemetry from the gaming server.
 
 ---
 
-## Security Monitoring Architecture
+## 5. Logical Network Segmentation
 
-The laboratory utilizes Wazuh as its centralized security monitoring platform.
+The environment utilizes multiple logical network segments to separate systems based on purpose and security requirements.
 
-Wazuh collects and analyzes telemetry from multiple infrastructure components.
+### Network Segment Inventory
 
-### Security Telemetry Sources
+| Network Segment | Primary Purpose | Trust Classification |
+|---|---|---|
+| Infrastructure Management | Network and virtualization infrastructure | Restricted |
+| Home Network | Trusted personal devices | Trusted |
+| Work Network | Work-related systems | Restricted |
+| Security Network | SOC laboratory and security testing | Isolated Testing |
+| Gaming Network | Dedicated gaming infrastructure | Segmented |
+| Private Wireless | Trusted wireless devices | Trusted |
+| Public Wireless | Guest and less-trusted devices | Less Trusted |
 
-| Source | IP Address | Collection Method | Status |
-|--------|------------|-------------------|--------|
-| WIN11-SOC-01 | 10.1.69.71 | Wazuh Agent | Active |
-| DSHIELD-01 | 10.1.69.70 | Wazuh Agent / Cowrie Logs | Active |
-| GAME-SERVER-01 | 10.1.90.100 | Wazuh Agent | Active |
-| FortiGate 90D | Not Documented | Syslog Forwarding | Configured |
+VLAN segmentation provides logical separation between these environments.
 
-The three endpoint agents were verified as active on October 20, 2026.
+Inter-VLAN communication is controlled through FortiGate firewall policies.
 
-FortiGate firewall logs are forwarded separately through syslog and do not require an endpoint agent.
+### 5.1 Infrastructure Management
 
-### Telemetry Collection Architecture
+The infrastructure management network supports administration of core network and virtualization equipment.
+
+Managed services include:
+
+- FortiGate administration
+- Proxmox administration
+- Ubiquiti network management
+- SSH administration
+- Infrastructure monitoring
+
+Management access is restricted to authorized administrative systems.
+
+The management environment is not represented as a dedicated management VLAN.
+
+Administrative restrictions are implemented through applicable network policies and device-level access controls.
+
+### 5.2 Home Network
+
+The Home network supports trusted personal devices.
+
+It provides connectivity for authorized internal systems and personal computing equipment.
+
+Communication with other network segments is governed by applicable firewall policies.
+
+### 5.3 Work Network
+
+A dedicated Work VLAN provides network separation for work-related systems.
+
+The objective is to reduce unnecessary communication between work devices, personal devices, and security testing infrastructure.
+
+This separation helps maintain distinct network boundaries between device categories.
+
+### 5.4 Security Network
+
+The Security VLAN hosts the primary virtualized cybersecurity workloads.
+
+These include:
+
+- DShield/Cowrie honeypot
+- Windows SOC endpoint
+- Wazuh SIEM
+
+The Security VLAN provides a dedicated environment for security monitoring, controlled testing, and adversary simulation.
+
+Firewall policies govern permitted communication between the Security VLAN and other network segments.
+
+### 5.5 Gaming Network
+
+The Gaming VLAN provides logical separation for gaming-related infrastructure.
+
+A dedicated physical Windows computer hosts the Palworld server within this network.
+
+The Gaming VLAN supports:
+
+- Dedicated game server hosting
+- DHCP reservations
+- Controlled firewall access
+- UDP application traffic
+- Network isolation
+- Endpoint security monitoring
+
+The gaming server is monitored through its installed Wazuh agent.
+
+### 5.6 Private Wireless Network
+
+The Private wireless network supports trusted wireless devices.
+
+Wireless traffic is associated with a dedicated VLAN.
+
+The FortiGate controls routed communication between the Private wireless network and other network segments.
+
+### 5.7 Public Wireless Network
+
+The Public wireless network provides connectivity for less-trusted wireless devices.
+
+Separating public wireless clients from trusted infrastructure reduces unnecessary network exposure.
+
+The Public wireless network is integrated into the FortiGate's segmentation and policy enforcement architecture.
+
+---
+
+## 6. VLAN Architecture
+
+The HomeLAB uses IEEE 802.1Q VLAN tagging to transport multiple logical networks across shared physical infrastructure.
+
+### VLAN Responsibilities
+
+VLANs provide:
+
+- Logical separation of network traffic
+- Independent broadcast domains
+- Separation of device categories
+- Simplified network organization
+- Support for centralized firewall enforcement
+
+### VLAN Traffic Flow
 
 ```text
-               SECURITY TELEMETRY SOURCES
-
-    FortiGate 90D
-         |
-         | Syslog
-         |
-         +---------------------------+
-                                     |
-    WIN11-SOC-01                     |
-    10.1.69.71                       |
-         |                           |
-         | Wazuh Agent               |
-         |                           |
-         +---------------------------+
-                                     |
-    DSHIELD-01                       |
-    10.1.69.70                       |
-         |                           |
-         | Wazuh Agent / Cowrie      |
-         |                           |
-         +---------------------------+
-                                     |
-    GAME-SERVER-01                   |
-    10.1.90.100                      |
-         |                           |
-         | Wazuh Agent               |
-         |                           |
-         +---------------------------+
-                                     |
-                                     v
-                                 WAZUH-01
-                                     |
-                                     |
-                           Security Event Analysis
-                                     |
-                                     |
-                           Custom Detection Rules
-                                     |
-                                     |
-                            Alerts / Investigation
+                   NETWORK DEVICE
+                         |
+                         |
+                   UBIQUITI SWITCH
+                         |
+                         |
+                    VLAN TRAFFIC
+                         |
+                         |
+                    FORTIGATE
+                         |
+                         |
+                 FIREWALL POLICY
+                    EVALUATION
+                         |
+              +----------+----------+
+              |                     |
+              |                     |
+         AUTHORIZED             UNAUTHORIZED
+          TRAFFIC                 TRAFFIC
+              |                     |
+              v                     v
+           PERMITTED              DENIED
 ```
 
-This diagram illustrates logical telemetry relationships rather than exact transport protocols.
+### VLAN Tagging
 
-The specific ingestion methods, agent configurations, and detection rules are documented in the Wazuh SIEM documentation.
+The managed switch supports tagged VLAN traffic between infrastructure devices.
+
+The FortiGate maintains the applicable VLAN interfaces used for routing and policy enforcement.
+
+Proxmox virtual networking supports VLAN tagging for virtual machine connectivity.
+
+### Segmentation Limitations
+
+VLANs provide logical separation but do not independently guarantee complete security isolation.
+
+Effective segmentation also depends on:
+
+- Firewall policies
+- Device configuration
+- Administrative access controls
+- Endpoint security
+- Network monitoring
+- Ongoing configuration review
+
+Detailed VLAN design is documented in:
+
+`04_VLAN_Design.md`
 
 ---
 
-## Security Design
+## 7. Proxmox Virtual Networking
 
-### Network Segmentation
+Proxmox provides virtual network connectivity for the security laboratory.
 
-Network segmentation is implemented through VLANs and firewall policies.
+### Virtual Networking Components
 
-This design helps limit unnecessary communication between systems with different trust requirements.
+The environment uses:
 
-Segmentation provides several benefits:
+- Linux bridges
+- VLAN-aware networking
+- Virtual network interfaces
+- Guest operating system networking
+- FortiGate routing and security policies
 
-- Reduced exposure between network segments
-- Improved traffic control
-- Separation of trusted and less-trusted devices
-- Greater visibility into permitted network communication
-- Improved control over administrative access
+### Network Design
 
-### Firewall Policy Enforcement
+The Proxmox host connects to the physical managed switching infrastructure.
 
-The FortiGate firewall controls traffic between network segments.
+Virtual machines use virtual network interfaces connected to the appropriate Proxmox bridge.
 
-Policies are configured to permit authorized communication while restricting unnecessary access.
+VLAN configuration associates the security workloads with the dedicated Security VLAN.
 
-The firewall's implicit deny behavior provides an additional layer of protection for traffic that does not match an applicable allow policy.
+### Virtual Machine Network Architecture
+
+```text
+                  PROXMOX VE HOST
+                         |
+                         |
+                 VLAN-AWARE BRIDGE
+                         |
+             +-----------+-----------+
+             |           |           |
+             |           |           |
+             v           v           v
+          DSHIELD      WINDOWS      WAZUH
+          HONEYPOT     SOC VM       SIEM
+             |           |           |
+             +-----------+-----------+
+                         |
+                         |
+                   SECURITY VLAN
+                         |
+                         |
+                     FORTIGATE
+```
+
+The three active security virtual machines share the same logical security network.
+
+Communication with other VLANs is subject to applicable FortiGate policies.
+
+### Virtualization Inventory
+
+| Virtual Workload | Operating System | Primary Function |
+|---|---|---|
+| DShield Honeypot | Ubuntu Server | Honeypot and Attack Telemetry |
+| Windows SOC Endpoint | Windows 11 | Endpoint Monitoring and Security Testing |
+| Wazuh SIEM | Ubuntu Server | Centralized Security Monitoring |
+
+The retired general-purpose Ubuntu management VM is no longer part of the active environment.
+
+Detailed Proxmox configuration is documented in:
+
+`06_Proxmox_Configuration.md`
+
+---
+
+## 8. Network Routing
+
+The FortiGate serves as the primary routing device for the segmented network.
+
+### Routing Responsibilities
+
+The firewall provides:
+
+- Internal network gateway services
+- Inter-VLAN routing
+- WAN routing
+- Network Address Translation
+- Firewall policy enforcement
+
+### Inter-VLAN Routing
+
+Traffic between different VLANs is routed through the FortiGate.
+
+This provides a centralized point for applying security policies.
+
+### Example Traffic Flow
+
+```text
+                 SOURCE DEVICE
+                       |
+                       |
+                  SOURCE VLAN
+                       |
+                       |
+                   FORTIGATE
+                       |
+                       |
+                 FIREWALL POLICY
+                       |
+                       |
+                DESTINATION VLAN
+                       |
+                       |
+                DESTINATION DEVICE
+```
+
+Communication is permitted only when an applicable policy allows the requested traffic.
+
+### Internet Routing
+
+Outbound internet traffic traverses the FortiGate.
+
+Network Address Translation allows internal systems to communicate with external services.
+
+### Static Routing
+
+Static routes may be used where required for specific infrastructure connectivity.
+
+Exact route destinations and next-hop information are excluded from public documentation.
+
+---
+
+## 9. Firewall Security Architecture
+
+The FortiGate provides centralized policy enforcement between network segments.
+
+### Firewall Policy Objectives
+
+Firewall policies are designed to:
+
+- Permit required network communication
+- Restrict unnecessary inter-VLAN access
+- Control administrative connectivity
+- Support security monitoring
+- Separate security testing infrastructure
+- Support selected externally accessible services
+
+### Policy Evaluation
+
+```text
+                  NETWORK TRAFFIC
+                         |
+                         |
+                     FORTIGATE
+                         |
+                         |
+                 POLICY EVALUATION
+                         |
+             +-----------+-----------+
+             |                       |
+             |                       |
+        MATCHING ALLOW          NO MATCHING
+            POLICY              ALLOW POLICY
+             |                       |
+             v                       v
+          PERMITTED                DENIED
+```
+
+### Security Enforcement
+
+Firewall policies evaluate traffic using relevant characteristics such as:
+
+- Source network
+- Destination network
+- Network service
+- Protocol
+- Applicable policy conditions
 
 ### Administrative Access
 
@@ -407,23 +581,154 @@ Management access to infrastructure components is restricted to authorized admin
 
 SSH and web-based administration are used where appropriate.
 
-Management access is controlled through firewall policies and device-level access restrictions.
+Administrative access is controlled through firewall policies and device-level access restrictions.
 
-### Honeypot Isolation
+### Public Documentation
 
-The DShield/Cowrie honeypot collects suspicious SSH activity.
+The following operational details are intentionally excluded:
 
-External connectivity is controlled through FortiGate firewall policies and destination NAT configurations.
+- Administrative interface addresses
+- Exact firewall policy identifiers
+- Detailed management access rules
+- External service mappings
+- Public IP addresses
+- Sensitive device configurations
 
-The honeypot provides an environment for observing unauthorized connection attempts and attacker behavior.
+Detailed firewall architecture is documented in:
 
-Its exposure is intentionally limited to the services required for honeypot operation.
+`07_FortiGate_Configuration.md`
 
-### Endpoint Security Monitoring
+---
 
-Windows endpoints generate security telemetry through native Windows logging and additional monitoring components.
+## 10. Network Address Translation
 
-WIN11-SOC-01 utilizes:
+The FortiGate provides Network Address Translation for internal and selected externally accessible services.
+
+### Source NAT
+
+Source NAT supports outbound internet connectivity for internal network devices.
+
+### Destination NAT
+
+Destination NAT is used where selected external services require controlled inbound connectivity.
+
+### Security Considerations
+
+Externally accessible services require additional attention to:
+
+- Firewall policy scope
+- Service exposure
+- Network segmentation
+- Logging
+- Monitoring
+- Patch management
+- Access restrictions
+
+### Honeypot Connectivity
+
+The DShield/Cowrie honeypot receives selected external traffic through controlled firewall configurations.
+
+The honeypot is separated from trusted internal infrastructure.
+
+Exact public addresses, service ports, and destination mappings are not included in this document.
+
+---
+
+## 11. Security Monitoring Architecture
+
+The HomeLAB uses Wazuh as its centralized security monitoring platform.
+
+Wazuh collects and analyzes telemetry from multiple infrastructure components.
+
+### Security Telemetry Sources
+
+| Source | Collection Method | Purpose |
+|---|---|---|
+| Windows SOC Endpoint | Wazuh Agent | Windows Security Monitoring |
+| DShield Honeypot | Wazuh Agent / Cowrie Logs | Attack Telemetry |
+| Gaming Server | Wazuh Agent | Endpoint Monitoring |
+| FortiGate Firewall | Syslog Forwarding | Network Security Events |
+
+### Verified Monitoring Status
+
+During the October 20, 2026 infrastructure review:
+
+- Three endpoint agents were registered.
+- All three endpoint agents were active.
+- No disconnected endpoint agents were reported.
+- No pending endpoint agents were reported.
+- Two monitored endpoints were running Windows.
+- One monitored endpoint was running Ubuntu Linux.
+
+FortiGate firewall logs are forwarded separately through syslog and do not require an endpoint agent.
+
+### Telemetry Collection Architecture
+
+```text
+                SECURITY TELEMETRY SOURCES
+
+                +----------------------+
+                |  FORTIGATE FIREWALL  |
+                |    Network Syslog    |
+                +----------+-----------+
+                           |
+                           |
+                +----------v-----------+
+                |                      |
+                |      WAZUH SIEM      |
+                |                      |
+                +----------^-----------+
+                           |
+             +-------------+-------------+
+             |             |             |
+             |             |             |
+        +----+----+   +----+----+   +----+----+
+        | WINDOWS |   | DSHIELD |   | GAMING  |
+        | SOC VM  |   | HONEYPOT|   | SERVER  |
+        +---------+   +---------+   +---------+
+             |             |             |
+             |             |             |
+          WAZUH         WAZUH         WAZUH
+          AGENT         AGENT         AGENT
+```
+
+This diagram illustrates logical telemetry relationships rather than exact transport protocols or network routes.
+
+### Wazuh Responsibilities
+
+The Wazuh platform provides:
+
+- Security event collection
+- Log analysis
+- Detection rule processing
+- Alert generation
+- Security investigation
+- Detection engineering
+- Event correlation
+
+### Custom Detection Engineering
+
+Custom detection rules have been developed and tuned to analyze security telemetry.
+
+Detection engineering activities include:
+
+- Reviewing event fields
+- Identifying relevant log patterns
+- Developing detection conditions
+- Testing rule behavior
+- Investigating false positives
+- Reducing unnecessary alert noise
+- Validating security event generation
+
+The Wazuh environment supports practical SOC investigation and security engineering workflows.
+
+---
+
+## 12. Windows Endpoint Monitoring
+
+The Windows SOC endpoint provides a dedicated environment for security telemetry collection and controlled testing.
+
+### Installed Monitoring Components
 
 - Windows Event Logs
 - Sysmon
@@ -431,65 +736,217 @@ WIN11-SOC-01 utilizes:
 - PowerShell Logging
 - Wazuh Agent
 
-GAME-SERVER-01 is also monitored through its installed Wazuh agent.
+### Monitoring Capabilities
 
-This telemetry supports security investigations, detection engineering, and controlled security testing.
+These components provide visibility into:
+
+- Process execution
+- Parent and child processes
+- Windows security events
+- PowerShell activity
+- Authentication events
+- Endpoint security activity
+- Controlled adversary simulations
+
+### Security Operations Use Cases
+
+The endpoint supports:
+
+- Alert investigation
+- Process tree analysis
+- Detection validation
+- MITRE ATT&CK mapping
+- Security event correlation
+- Controlled attack simulation
+
+The dedicated gaming server is also monitored through its installed Wazuh agent.
 
 ---
 
-## Adversary Simulation Architecture
+## 13. Honeypot Security Architecture
+
+The DShield/Cowrie honeypot provides a controlled environment for observing unsolicited external activity.
+
+### Honeypot Purpose
+
+The honeypot collects telemetry associated with:
+
+- Unauthorized connection attempts
+- Credential guessing
+- Authentication failures
+- Automated scanning
+- Commands submitted during emulated sessions
+- Suspicious network activity
+
+### Network Placement
+
+The honeypot operates within the dedicated Security VLAN.
+
+Selected external traffic is directed to the honeypot through controlled FortiGate configurations.
+
+The honeypot is separated from trusted personal and work infrastructure.
+
+### Monitoring Integration
+
+Honeypot telemetry is integrated into Wazuh.
+
+This supports:
+
+- Security event analysis
+- Alert investigation
+- Custom detection development
+- Detection rule tuning
+- Threat behavior observation
+- SOC training
+
+### Security Considerations
+
+The honeypot is intentionally exposed to selected external traffic.
+
+This makes isolation, monitoring, and access control important aspects of its design.
+
+The public repository does not disclose exact external service mappings or management configurations.
+
+Detailed honeypot documentation is maintained in:
+
+`10_DShield_Honeypot.md`
+
+---
+
+## 14. Adversary Simulation Architecture
 
 The laboratory includes a dedicated Windows 11 SOC endpoint for controlled security testing.
 
-AtomicSOC is installed on WIN11-SOC-01 and provides a web interface for executing selected Atomic Red Team tests.
+AtomicSOC is installed on the Windows SOC endpoint.
 
-The application generates controlled endpoint activity that can be analyzed through Windows telemetry and Wazuh.
+AtomicSOC is a custom Python and FastAPI application that provides a web interface for executing selected Atomic Red Team tests.
 
 ### Testing Workflow
 
 ```text
-                 AtomicSOC
-               Web Interface
-                     |
-                     v
-                FastAPI Backend
-                     |
-                     v
-              Atomic Red Team
-                     |
-                     v
-               WIN11-SOC-01
-                     |
-                     v
-             Windows Telemetry
-                     |
-                     v
-                Wazuh Agent
-                     |
-                     v
-                 WAZUH-01
-                     |
-                     v
-             Security Investigation
+                    ATOMICSOC
+                   WEB INTERFACE
+                        |
+                        |
+                        v
+                  FASTAPI BACKEND
+                        |
+                        |
+                        v
+                  ATOMIC RED TEAM
+                        |
+                        |
+                        v
+                 WINDOWS SOC ENDPOINT
+                        |
+                        |
+                        v
+                  WINDOWS TELEMETRY
+                        |
+                        |
+                        v
+                    WAZUH AGENT
+                        |
+                        |
+                        v
+                     WAZUH SIEM
+                        |
+                        |
+                        v
+                 SECURITY INVESTIGATION
 ```
 
-The testing environment supports practical experience with:
+### Testing Capabilities
+
+The environment supports practical experience with:
 
 - MITRE ATT&CK techniques
 - Process execution monitoring
 - Windows event analysis
 - Detection validation
 - Security alert investigation
+- Controlled security testing
 
-Controlled simulations are conducted within the laboratory environment.
+### Implemented AtomicSOC Features
+
+- Web-based test execution
+- Python FastAPI backend
+- Atomic Red Team integration
+- MITRE ATT&CK technique mapping
+- Randomized test selection
+- Controlled test execution
+
+### Validated Test Categories
+
+Selected tests have been successfully executed for:
+
+- Process Discovery
+- File Deletion
+- System Network Configuration Discovery
+
+These tests generate controlled endpoint activity for security analysis.
+
+### Security Boundaries
+
+Adversary simulations are conducted within the laboratory environment.
+
+The objective is to generate observable security events and evaluate monitoring capabilities.
 
 ---
 
-## Network Security Monitoring
+## 15. Network Security Design
+
+### Network Segmentation
+
+Network segmentation is implemented through VLANs and firewall policies.
+
+This design helps limit unnecessary communication between systems with different trust requirements.
+
+Benefits include:
+
+- Reduced exposure between network segments
+- Improved traffic control
+- Separation of trusted and less-trusted devices
+- Greater visibility into permitted network communication
+- Improved administrative access control
+
+### Firewall Policy Enforcement
+
+The FortiGate controls traffic between network segments.
+
+Policies are configured to permit authorized communication while restricting unnecessary access.
+
+The firewall's implicit deny behavior blocks traffic that does not match an applicable allow policy.
+
+### Administrative Access
+
+Management access to infrastructure components is restricted to authorized administrative devices and accounts.
+
+Administrative access is controlled through applicable network policies and device-level authentication.
+
+### Honeypot Isolation
+
+The DShield/Cowrie honeypot is separated from trusted infrastructure.
+
+Its external exposure is limited to selected services required for honeypot operation.
+
+### Endpoint Monitoring
+
+Windows and Linux endpoints provide security telemetry through Wazuh agents and operating system logging.
+
+### Centralized Security Visibility
+
+Wazuh provides a common platform for analyzing endpoint and network security events.
+
+---
+
+## 16. Network Security Monitoring
 
 The network architecture supports centralized security visibility through Wazuh.
 
-Monitoring capabilities include:
+### Monitoring Capabilities
+
+Current monitoring includes:
 
 - Firewall event collection
 - Windows endpoint telemetry
@@ -500,15 +957,81 @@ Monitoring capabilities include:
 - Custom detection rules
 - Security alert investigation
 
+### Investigation Workflow
+
+```text
+                 SECURITY EVENT
+                       |
+                       |
+                       v
+                 LOG COLLECTION
+                       |
+                       |
+                       v
+                  WAZUH ANALYSIS
+                       |
+                       |
+                       v
+                DETECTION RULES
+                       |
+                       |
+                       v
+                 ALERT REVIEW
+                       |
+                       |
+                       v
+                  INVESTIGATION
+                       |
+                       |
+                       v
+                DETECTION TUNING
+```
+
 The objective is to improve visibility into suspicious activity across both network and endpoint systems.
 
 ---
 
-## Future Expansion
+## 17. Infrastructure Management
+
+The HomeLAB infrastructure is administered through a combination of secure remote management tools.
+
+### Management Technologies
+
+- SSH
+- PowerShell
+- Web-based administration
+- Proxmox management tools
+- FortiGate administration
+- UniFi Network
+- Wazuh Dashboard
+
+### Management Objectives
+
+Administrative workflows emphasize:
+
+- Authorized access
+- Configuration verification
+- Controlled changes
+- Troubleshooting
+- System maintenance
+- Security monitoring
+- Documentation
+
+### Change Management
+
+Infrastructure changes are researched, implemented, tested, and documented.
+
+Snapshots and backups are used where appropriate before significant changes.
+
+Configuration baselines support troubleshooting and recovery.
+
+---
+
+## 18. Future Infrastructure Expansion
 
 The network architecture is designed to support additional infrastructure and security capabilities.
 
-### Windows Server and Active Directory
+### 18.1 Windows Server and Active Directory
 
 A Windows Server virtual machine is planned for deployment within Proxmox.
 
@@ -520,11 +1043,11 @@ The server will provide:
 - Centralized identity management
 - Domain authentication
 
-WIN11-SOC-01 will be joined to the Active Directory domain.
+The existing Windows SOC endpoint will be joined to the Active Directory domain.
 
 Security monitoring will be expanded to include authentication activity and identity-related security events.
 
-### Active Directory Security Monitoring
+### 18.2 Active Directory Security Monitoring
 
 Future detection engineering activities will include:
 
@@ -537,7 +1060,7 @@ Future detection engineering activities will include:
 
 These capabilities will expand the laboratory's security monitoring coverage.
 
-### AI-Powered SOC Job Discovery Platform
+### 18.3 AI-Powered SOC Job Discovery Platform
 
 A lightweight Linux container is planned for deployment using Proxmox LXC.
 
@@ -555,7 +1078,7 @@ Planned capabilities include:
 
 The application will operate as a separate infrastructure service within the laboratory.
 
-### Additional Security Automation
+### 18.4 Additional Security Automation
 
 Future improvements may include:
 
@@ -568,27 +1091,131 @@ Future improvements may include:
 
 ---
 
-## Documentation References
+## 19. Design Decisions
+
+### Centralized Routing
+
+The FortiGate provides a centralized routing and security enforcement point.
+
+### VLAN-Based Segmentation
+
+Logical network separation allows multiple security zones to operate over shared physical infrastructure.
+
+### Dedicated Security Network
+
+Security testing and monitoring workloads operate within a dedicated network segment.
+
+### Managed Switching
+
+The UniFi switch provides VLAN-aware Layer 2 connectivity and centralized management.
+
+### Dedicated Wireless Networks
+
+Separate wireless networks support devices with different trust requirements.
+
+### Centralized Security Monitoring
+
+Wazuh collects and analyzes security telemetry from multiple infrastructure components.
+
+### Virtualized Security Workloads
+
+Proxmox provides a flexible platform for deploying and managing cybersecurity systems.
+
+### Controlled External Exposure
+
+Selected services are exposed through firewall configurations rather than unrestricted access to internal infrastructure.
+
+### Public Documentation Security
+
+The public repository emphasizes architecture, technical implementation, and demonstrated skills while excluding sensitive operational identifiers.
+
+---
+
+## 20. Lessons Learned
+
+Designing and maintaining the HomeLAB network has provided practical experience with:
+
+- Enterprise-inspired network architecture
+- VLAN segmentation
+- Managed Layer 2 switching
+- Inter-VLAN routing
+- Firewall policy administration
+- Network Address Translation
+- Wireless network segmentation
+- Proxmox virtual networking
+- Security telemetry collection
+- Endpoint monitoring
+- Honeypot integration
+- Network troubleshooting
+- Security testing
+- Infrastructure documentation
+
+### Key Technical Lessons
+
+**VLANs provide logical separation, not complete security by themselves.**
+
+Firewall policies and access controls are necessary to govern communication between network segments.
+
+**Centralized routing simplifies security enforcement.**
+
+Using the FortiGate as the primary Layer 3 device provides a consistent point for applying network policies.
+
+**Network visibility is essential for security investigations.**
+
+Collecting firewall and endpoint telemetry provides greater context than relying on a single data source.
+
+**Virtualization supports flexible security testing.**
+
+Proxmox allows independent security workloads to share physical resources while maintaining separate guest environments.
+
+**Controlled adversary simulation improves detection engineering.**
+
+Generating known test activity provides an opportunity to evaluate telemetry collection and detection behavior.
+
+**Accurate documentation supports troubleshooting and future expansion.**
+
+Documenting network architecture makes it easier to understand dependencies, identify configuration issues, and plan infrastructure changes.
+
+---
+
+## 21. Documentation References
 
 Additional configuration details are maintained in the following documents:
 
+- `01_Project_Overview.md`
+- `02_Hardware_Inventory.md`
 - `04_VLAN_Design.md`
 - `05_IP_Addressing_Plan.md`
 - `06_Proxmox_Configuration.md`
 - `07_FortiGate_Configuration.md`
 - `08_Ubiquiti_Switch_Configuration.md`
+- `09_Ubuntu_Server.md`
 - `10_DShield_Honeypot.md`
+- `11_Backup_and_Recovery.md`
 
-Detailed Wazuh, Windows 11 SOC, and AtomicSOC documentation will be maintained in dedicated project documents.
+Detailed Wazuh, Windows SOC endpoint, and AtomicSOC documentation will be maintained in dedicated project documents.
 
 ---
 
-## Notes
+## 22. Summary
 
-This document provides a high-level representation of the current network architecture.
+The CyberSecurity-HomeLab combines physical networking infrastructure, VLAN-based segmentation, Proxmox virtualization, centralized firewall enforcement, and security monitoring.
 
-Detailed VLAN assignments, IP addresses, firewall policies, and device configurations are maintained in separate documentation files.
+The environment includes:
 
-Network architecture diagrams will be updated after the infrastructure documentation refresh is completed.
+- FortiGate firewall
+- Ubiquiti managed switch
+- Two wireless access points
+- Segmented internal networks
+- Proxmox virtualization host
+- DShield/Cowrie honeypot
+- Windows SOC endpoint
+- Wazuh SIEM
+- Dedicated gaming server
+- Centralized endpoint and network security telemetry
 
-The architecture will continue evolving as new infrastructure components and security capabilities are introduced.
+The architecture supports practical experience with network administration, virtualization, security operations, detection engineering, and controlled adversary simulation.
+
+Future expansion will introduce Windows Server, Active Directory, identity-focused security monitoring, and containerized automation workloads.
+
+This document intentionally excludes sensitive operational details to support safe publication in a public cybersecurity portfolio.
