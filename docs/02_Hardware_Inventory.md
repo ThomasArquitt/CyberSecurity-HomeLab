@@ -1,145 +1,281 @@
-# Hardware Inventory
+# 02 — Hardware Inventory
 
-## Purpose
+## 1. Overview
 
-This document provides a detailed inventory of the physical hardware and virtual infrastructure supporting the CyberSecurity-HomeLab project.
+This document provides a comprehensive inventory of the physical hardware and virtual infrastructure supporting the CyberSecurity-HomeLab project.
 
-Maintaining an accurate hardware inventory is essential for infrastructure management, capacity planning, troubleshooting, security monitoring, and future expansion.
+The HomeLAB is designed to provide hands-on experience with enterprise networking, virtualization, cybersecurity monitoring, detection engineering, system administration, and infrastructure management.
 
-The inventory includes physical networking equipment, virtualization hosts, storage devices, dedicated servers, and virtual machines.
+Maintaining an accurate hardware inventory supports:
+
+- Infrastructure administration
+- Capacity planning
+- Troubleshooting
+- Security monitoring
+- Resource allocation
+- Backup and recovery
+- Infrastructure lifecycle management
+- Future expansion
+
+The inventory includes networking equipment, virtualization hardware, storage devices, dedicated servers, and virtual machines.
 
 **Last Updated:** October 20, 2026
 
----
-
-## Internet Service
-
-| Component | Details |
-|-----------|---------|
-| Internet Service Provider | Breezeline |
-| Connection Type | Fiber |
-| Delivery Method | Aerial Fiber |
-| Network Handoff | Optical Network Terminal (ONT) |
-| Firewall Connection | FortiGate WAN1 |
-| Primary Purpose | Internet connectivity |
-
-The ISP fiber connection terminates at an Optical Network Terminal (ONT), which provides an Ethernet handoff to the FortiGate firewall.
-
-The FortiGate serves as the primary gateway for the laboratory network.
+> **Security Note:** This document is a sanitized representation of the operational HomeLAB infrastructure. Public IP addresses, internal management addresses, exact virtual machine identifiers, storage identifiers, credentials, device serial numbers, and sensitive configuration details are intentionally excluded.
 
 ---
 
-## Firewall
+## 2. Internet Connectivity
 
-| Component | Details |
-|-----------|---------|
+The HomeLAB uses a residential fiber internet connection.
+
+Internet connectivity is delivered through ISP-provided equipment to the FortiGate firewall.
+
+The FortiGate serves as the primary network gateway and security enforcement point.
+
+### Connection Architecture
+
+```text
+                 INTERNET
+                     |
+                     |
+              ISP EQUIPMENT
+                     |
+                     |
+             FORTIGATE FIREWALL
+                     |
+                     |
+             MANAGED SWITCHING
+                     |
+                     |
+              HOMELAB DEVICES
+```
+
+### Internet Connection
+
+| Component | Configuration |
+|---|---|
+| Connection Type | Residential Fiber |
+| Network Handoff | ISP-Provided Equipment |
+| Primary Gateway | FortiGate Firewall |
+| Internal Distribution | Managed Ethernet Switch |
+| Security Enforcement | FortiGate Firewall |
+
+The firewall provides routing, network segmentation, Network Address Translation (NAT), and traffic filtering for the internal environment.
+
+---
+
+## 3. Firewall Infrastructure
+
+The HomeLAB uses a Fortinet FortiGate firewall as its primary security appliance.
+
+### Hardware Inventory
+
+| Component | Configuration |
+|---|---|
 | Manufacturer | Fortinet |
 | Model | FortiGate 90D |
-| Device Type | Next-Generation Firewall |
-| Role | Network Gateway and Security Enforcement |
-| Primary WAN Interface | WAN1 |
+| Device Type | Network Security Appliance |
+| Primary Role | Network Gateway and Security Enforcement |
 | Network Segmentation | VLAN-Based |
 | Routing | Inter-VLAN and WAN Routing |
-| Firewall Policies | Configured |
 | Network Address Translation | Configured |
-| Security Logging | Syslog Forwarding to Wazuh |
+| Firewall Policies | Configured |
+| Security Logging | Forwarded to Wazuh |
 | Management | Restricted Administrative Access |
 
 ### Responsibilities
 
-The FortiGate 90D provides centralized network security and traffic management.
+The FortiGate provides centralized network security and traffic management.
 
 Primary responsibilities include:
 
 - Internet gateway functionality
 - VLAN routing
 - Inter-VLAN access control
-- Firewall policy enforcement
+- Stateful firewall inspection
 - Network Address Translation (NAT)
-- DHCP services
+- DHCP services for applicable network segments
 - Network traffic logging
-- Syslog forwarding to Wazuh
+- Syslog forwarding
 - Administrative access restrictions
+- Controlled exposure of selected services
 
-Firewall policies are configured to control communication between network segments and restrict unnecessary access.
+### Security Design
 
-Security logs are forwarded to the Wazuh SIEM for centralized monitoring and investigation.
+The FortiGate acts as the primary Layer 3 routing and security enforcement device.
+
+The environment uses explicit firewall policies to permit required communication between network segments.
+
+Traffic that does not match an applicable allow policy is subject to the firewall's implicit deny behavior.
+
+### Security Monitoring Integration
+
+FortiGate security logs are forwarded to the Wazuh SIEM using syslog.
+
+This provides centralized visibility into network activity and supports security investigations.
+
+### Public Documentation Considerations
+
+Exact firewall policy identifiers, administrative endpoints, external service mappings, and public IP addresses are excluded from the public repository.
+
+Detailed firewall architecture is documented separately in:
+
+`07_FortiGate_Configuration.md`
 
 ---
 
-## Switching Infrastructure
+## 4. Switching Infrastructure
 
-| Component | Details |
-|-----------|---------|
+The HomeLAB uses a Ubiquiti managed Ethernet switch to provide Layer 2 network connectivity.
+
+### Hardware Inventory
+
+| Component | Configuration |
+|---|---|
 | Manufacturer | Ubiquiti |
-| Model | Switch Lite 8 PoE |
-| Device Type | Managed Network Switch |
-| Ethernet Ports | 8 |
-| PoE Support | Yes |
-| VLAN Support | Yes |
-| Role | Managed Layer 2 Switching |
-| Management | Ubiquiti Network Management |
+| Model | UniFi Switch Lite 8 PoE |
+| Device Type | Managed Layer 2 Switch |
+| Ethernet Ports | 8 Gigabit Ethernet |
+| PoE Support | PoE/PoE+ |
+| PoE-Capable Ports | 4 |
+| VLAN Support | IEEE 802.1Q |
+| Primary Role | Layer 2 Switching |
+| Management Platform | UniFi Network |
 
 ### Responsibilities
 
-The Ubiquiti managed switch provides connectivity between the FortiGate firewall, Proxmox virtualization host, wireless access points, and additional network devices.
+The managed switch provides connectivity between:
+
+- FortiGate firewall
+- Proxmox virtualization host
+- Wireless access points
+- Dedicated gaming server
+- Additional wired infrastructure
 
 Primary responsibilities include:
 
-- VLAN-aware switching
-- Network segmentation
+- VLAN-aware Ethernet switching
+- Tagged VLAN transport
+- Network segmentation support
 - Power over Ethernet delivery
-- Physical network connectivity
-- Wireless access point connectivity
-- Managed network infrastructure
+- Physical device connectivity
+- Network traffic monitoring
+- Centralized switch management
 
-The switch supports multiple network segments while allowing the FortiGate to enforce security policies between VLANs.
+### Network Integration
+
+The switch transports VLAN-tagged traffic between connected infrastructure.
+
+The FortiGate provides Layer 3 routing and firewall policy enforcement.
+
+This separation allows multiple logical networks to share physical switching infrastructure.
+
+### Management
+
+The UniFi Network application provides centralized management capabilities, including:
+
+- Switch port configuration
+- VLAN assignments
+- Link speed monitoring
+- PoE management
+- Connected device visibility
+- Firmware status
+- Traffic statistics
+
+Detailed switching architecture is documented in:
+
+`08_Ubiquiti_Switch_Configuration.md`
 
 ---
 
-## Wireless Infrastructure
+## 5. Wireless Infrastructure
 
-| Component | Details |
-|-----------|---------|
+The HomeLAB uses two Ubiquiti wireless access points.
+
+### Hardware Inventory
+
+| Component | Configuration |
+|---|---|
 | Manufacturer | Ubiquiti |
-| Wireless Access Points | 2 |
+| Model | UAP-AC-Pro |
+| Quantity | 2 |
 | Power Delivery | Power over Ethernet |
-| Network Integration | Ubiquiti Managed Switch |
-| Wireless Networks | Public and Private |
-| Deployment | Multiple Physical Buildings |
+| Network Connectivity | Wired Ethernet |
+| Management Platform | UniFi Network |
+| Wireless Bands | 2.4 GHz and 5 GHz |
+| Wireless Segmentation | Private and Public Networks |
 
 ### Responsibilities
 
-The wireless infrastructure provides network connectivity across multiple physical locations.
+The wireless infrastructure provides connectivity for trusted and less-trusted wireless devices.
 
-Two Ubiquiti wireless access points provide wireless coverage for the property.
+Both access points connect directly to the managed switch and receive power through PoE.
 
-Wireless networks are logically separated to support different connectivity and security requirements.
+### Physical Deployment
 
-The access points are managed through the Ubiquiti networking environment.
+The access points are installed in separate physical locations.
+
+One provides wireless coverage for the primary building.
+
+The second extends wireless coverage to another building on the property.
+
+Both access points use wired Ethernet backhaul connections.
+
+### Wireless Network Design
+
+The environment provides separate wireless networks for:
+
+- Private wireless clients
+- Public or guest wireless clients
+
+Wireless traffic is associated with the appropriate VLAN.
+
+The FortiGate controls routed communication between wireless and wired network segments.
+
+### Operational Monitoring
+
+The UniFi Network application provides visibility into:
+
+- Access point connectivity
+- Client associations
+- Ethernet link speeds
+- Device status
+- PoE utilization
+- Firmware information
+
+### Planned Maintenance
+
+During infrastructure verification, both access points were observed negotiating Ethernet connections at Fast Ethernet speeds.
+
+The access point ports use automatic link negotiation.
+
+Further cable and link-negotiation troubleshooting is planned.
 
 ---
 
-## Primary Virtualization Host
+## 6. Primary Virtualization Host
 
-| Component | Details |
-|-----------|---------|
+The HomeLAB uses a dedicated mini PC running Proxmox Virtual Environment.
+
+### Hardware Specifications
+
+| Component | Configuration |
+|---|---|
 | Platform | Mini PC |
 | Processor | Intel Core i7-11370H |
-| Processor Generation | 11th Gen Intel |
+| Processor Generation | 11th Generation Intel |
 | Physical CPU Cores | 4 |
 | Logical CPU Threads | 8 |
-| Base Clock Speed | 3.30 GHz |
-| Installed Memory | 32 GB RAM |
-| Usable Memory | 31.08 GiB |
-| Primary Storage | 500 GB SSD |
+| Installed Memory | 32 GB |
+| Primary Storage | 512 GB-Class NVMe SSD |
 | Hypervisor | Proxmox VE 9.2 |
 | Boot Mode | UEFI |
-| Role | Primary Virtualization Infrastructure |
+| Primary Role | Virtualization Infrastructure |
 
 ### Responsibilities
 
-The Proxmox VE host provides the primary computing platform for the CyberSecurity-HomeLab.
+The Proxmox host provides the primary computing platform for the HomeLAB.
 
 It hosts virtual machines supporting:
 
@@ -150,175 +286,335 @@ It hosts virtual machines supporting:
 - Detection engineering
 - Infrastructure administration
 
-Virtualization allows security services and test environments to operate independently while sharing physical hardware resources.
+Virtualization allows these services to operate as independent workloads while sharing physical computing resources.
 
-### Proxmox Resource Utilization
+### Virtualization Capabilities
 
-Resource utilization recorded October 20, 2026:
+Proxmox provides:
 
-| Resource | Value |
-|----------|-------|
-| Logical CPUs | 8 |
-| CPU Utilization | 1.41% |
+- Virtual machine management
+- Virtual networking
+- VLAN-aware network connectivity
+- Storage management
+- Virtual machine snapshots
+- Backup scheduling
+- Resource allocation
+- Remote administration
+- QEMU guest agent integration
+
+### Resource Allocation
+
+The host currently supports three active security virtual machines.
+
+| Resource | Configuration |
+|---|---|
+| Physical CPU Cores | 4 |
+| Logical CPU Threads | 8 |
 | Installed RAM | 32 GB |
-| Usable RAM | 31.08 GiB |
-| RAM Utilization | 68.19% |
-| RAM In Use | 21.20 GiB |
-| RAM Available | Approximately 9.88 GiB |
-| Root Filesystem Capacity | 93.93 GiB |
-| Root Filesystem Used | 7.62 GiB |
-| Root Filesystem Utilization | 8.12% |
-| Swap Capacity | 8 GiB |
-| Swap Utilization | 0% |
+| Active Virtual Machines | 3 |
+| Configured VM Memory | 20 GB |
+| Provisioned VM Boot Disk Capacity | 200 GB |
+| Active LXC Containers | 0 |
 
-These values represent a point-in-time snapshot and will fluctuate based on virtual machine activity.
+Configured virtual machine memory represents allocated guest memory rather than total physical host memory utilization.
 
-The root filesystem capacity does not represent the total storage available across all Proxmox storage pools.
+Provisioned virtual disk capacity represents configured disk sizes rather than actual physical storage consumption.
+
+### Capacity Planning
+
+Additional infrastructure is planned, including a Windows Server domain controller.
+
+Future resource allocation will consider:
+
+- Available memory
+- CPU utilization
+- Storage capacity
+- Existing VM requirements
+- Expected application workloads
+- Backup requirements
 
 ---
 
-## Backup Storage
+## 7. Proxmox Storage Architecture
 
-| Component | Details |
-|-----------|---------|
+The Proxmox host uses internal NVMe storage for its operating system and active virtual machine disks.
+
+### Primary Storage
+
+| Component | Configuration |
+|---|---|
+| Storage Type | NVMe SSD |
+| Capacity | Approximately 500 GB |
+| Primary Purpose | Hypervisor and VM Storage |
+| Virtual Disk Storage | LVM-Thin |
+| Additional Storage | Local Directory Storage |
+
+### Storage Responsibilities
+
+The internal storage supports:
+
+- Proxmox operating system
+- Virtual machine disks
+- VM configuration metadata
+- Installation media
+- Local storage operations
+
+### Storage Design
+
+The environment separates active virtual machine storage from the dedicated external backup destination.
+
+This provides distinct storage locations for operational workloads and recovery archives.
+
+### Limitations
+
+The primary virtualization host uses a single internal physical storage device.
+
+A failure of this device could affect multiple virtual machines simultaneously.
+
+External backup storage provides an additional recovery option.
+
+---
+
+## 8. Backup Storage
+
+The HomeLAB uses dedicated external storage for virtual machine backup and recovery.
+
+### Hardware Inventory
+
+| Component | Configuration |
+|---|---|
 | Manufacturer | Seagate |
 | Device Type | External USB Hard Drive |
 | Capacity | 5 TB |
-| Proxmox Storage Name | HOMELAB_5TB |
+| Filesystem | ext4 |
+| Hypervisor Integration | Proxmox Directory Storage |
 | Primary Purpose | Virtual Machine Backups |
 | Additional Purpose | Recovery and Configuration Preservation |
 
 ### Backup Strategy
 
-The external Seagate drive provides dedicated storage for virtual machine backup and recovery operations.
-
-The laboratory utilizes:
+The environment uses:
 
 - Proxmox virtual machine backups
 - Virtual machine snapshots
 - Configuration baselines
 - Recovery points before major infrastructure changes
+- Automated backup scheduling
+- Defined backup retention policies
 
-Snapshots are used to preserve known working configurations before significant modifications.
+### Backup Configuration
 
-Backups provide an additional recovery mechanism for virtual machines and laboratory infrastructure.
+| Setting | Configuration |
+|---|---|
+| Backup Mode | Snapshot |
+| Compression | Zstandard |
+| Schedule | Daily, Early Morning |
+| Daily Retention | 7 |
+| Weekly Retention | 4 |
+| Monthly Retention | 3 |
+| Protected Workloads | Three Active Security VMs |
+
+### Current Backup Status
+
+Manual backups have been successfully created for all active security virtual machines.
+
+The scheduled backup job is enabled.
+
+Automated execution under the updated schedule and controlled restore testing remain outstanding validation tasks.
+
+### Storage Recovery Experience
+
+During infrastructure maintenance, the external backup drive experienced a filesystem issue following an unexpected USB disconnection.
+
+The filesystem was investigated and repaired using Linux administration tools.
+
+Backup storage access was restored, and new backup archives were successfully created.
+
+### Limitations
+
+The external drive is physically connected to the Proxmox host.
+
+An additional independent backup destination would improve resilience against shared hardware and physical failures.
+
+Detailed backup procedures are documented in:
+
+`11_Backup_and_Recovery.md`
 
 ---
 
-## Physical Server Infrastructure
+## 9. Dedicated Physical Server Infrastructure
 
 ### Palworld Dedicated Server
 
-| Component | Details |
-|-----------|---------|
+The HomeLAB includes a dedicated physical Windows computer hosting a Palworld game server.
+
+Although the application is gaming-related, the infrastructure provides additional experience with Windows administration, networking, application hosting, and security monitoring.
+
+### Server Inventory
+
+| Component | Configuration |
+|---|---|
 | Platform | Dedicated Physical Computer |
 | Operating System | Windows |
 | Primary Application | Palworld Dedicated Server |
 | Installation Method | SteamCMD |
-| Network Segment | Gaming VLAN |
+| Network Segment | Dedicated Gaming VLAN |
 | IP Assignment | DHCP Reservation |
-| Firewall | FortiGate 90D |
+| Network Security | FortiGate Firewall |
 | Security Monitoring | Wazuh Agent |
 | Application Management | Windows Scheduled Task |
 | API Integration | REST API Enabled |
 
-### Responsibilities
-
-The dedicated Palworld server provides an additional environment for practicing Windows administration, networking, and security monitoring.
-
-Implemented capabilities include:
+### Implemented Capabilities
 
 - Dedicated game server deployment
 - SteamCMD installation and administration
 - Windows Scheduled Task automation
-- DHCP reservations
-- Gaming VLAN segmentation
-- FortiGate firewall policy configuration
-- UDP traffic management
+- DHCP reservation management
+- VLAN-based network segmentation
+- Firewall policy configuration
+- Application-specific UDP traffic management
 - REST API configuration
 - Wazuh endpoint monitoring
 
-The server operates within a dedicated network segment to separate gaming services from other laboratory infrastructure.
+### Security Integration
 
-**Note:** Physical hardware specifications will be added after verification.
+The server operates within a dedicated network segment.
+
+This separates gaming infrastructure from the security testing and trusted internal environments.
+
+The Wazuh agent provides endpoint monitoring capabilities.
+
+### Hardware Verification
+
+Detailed physical hardware specifications have not yet been verified.
+
+They will be added when available.
 
 ---
 
-## Virtual Machine Inventory
+## 10. Virtual Machine Inventory
 
-The Proxmox VE host currently operates three virtual machines supporting security monitoring, endpoint telemetry collection, and adversary simulation.
+The Proxmox host currently operates three virtual machines supporting security monitoring, endpoint telemetry collection, and adversary simulation.
 
 ### Active Virtual Machines
 
-| VM ID | Hostname | Operating System | RAM | Boot Disk | Status |
-|-------|----------|------------------|-----|-----------|--------|
-| 101 | DSHIELD-01 | Ubuntu Linux | 4 GB | 40 GB | Running |
-| 102 | WIN11-SOC-01 | Windows 11 | 8 GB | 80 GB | Running |
-| 103 | WAZUH-01 | Ubuntu Server | 8 GB | 80 GB | Running |
+| Workload | Operating System | Virtual CPUs | Memory | Boot Disk | Status |
+|---|---|---|---|---|---|
+| DShield Honeypot | Ubuntu Server 26.04 LTS | 2 | 4 GB | 40 GB | Running |
+| Windows SOC Endpoint | Windows 11 | 4 | 8 GB | 80 GB | Running |
+| Wazuh SIEM | Ubuntu Server 26.04.1 LTS | 4 | 8 GB | 80 GB | Running |
 
-### Virtualization Resource Allocation
+### Resource Allocation
 
 | Resource | Total |
-|----------|-------|
+|---|---|
 | Active Virtual Machines | 3 |
+| Configured Virtual CPUs | 10 |
 | Configured VM Memory | 20 GB |
 | Provisioned Boot Disk Capacity | 200 GB |
 | LXC Containers | 0 |
 | Available Logical Host CPUs | 8 |
 
-The three virtual machines have a combined configured memory allocation of 20 GB.
+The total number of configured virtual CPUs exceeds the host's physical core count.
 
-Provisioned disk capacity represents configured virtual disk sizes rather than actual physical storage consumption.
+This is possible because Proxmox schedules virtual CPUs across the available host processing resources.
+
+The environment does not require every virtual CPU to be fully utilized simultaneously.
+
+### Virtualization Architecture
+
+```text
+                  PROXMOX HYPERVISOR
+                          |
+             +------------+------------+
+             |            |            |
+             v            v            v
+          DSHIELD       WINDOWS       WAZUH
+          HONEYPOT      SOC VM        SIEM
+             |            |            |
+             +------------+------------+
+                          |
+                          v
+                   SECURITY VLAN
+                          |
+                          v
+                   FORTIGATE
+```
+
+The virtual machines operate within a dedicated security network.
+
+Inter-VLAN access is controlled by the FortiGate.
 
 ---
 
-## Virtual Machine Details
+## 11. DShield Honeypot Virtual Machine
 
-### VM 101 — DSHIELD-01
+### Configuration
 
-| Component | Details |
-|-----------|---------|
-| VM ID | 101 |
-| Hostname | DSHIELD-01 |
-| Operating System | Ubuntu Linux |
+| Component | Configuration |
+|---|---|
+| Operating System | Ubuntu Server 26.04 LTS |
+| Virtual CPUs | 2 |
 | Memory | 4 GB |
 | Boot Disk | 40 GB |
+| Firmware | UEFI |
 | Primary Application | DShield/Cowrie Honeypot |
 | Security Integration | Wazuh SIEM |
+| Guest Agent | Enabled |
 
-#### Responsibilities
+### Responsibilities
 
-DSHIELD-01 operates as a dedicated Ubuntu virtual machine hosting the DShield/Cowrie SSH honeypot.
+The honeypot provides an isolated environment for observing unsolicited internet activity.
 
-The honeypot collects SSH-related attack activity, including:
+Collected telemetry may include:
 
 - Unauthorized connection attempts
 - Credential guessing
 - Authentication failures
-- Attacker command execution
+- Commands submitted during emulated sessions
 - Automated attack behavior
 - Suspicious network activity
 
-Collected telemetry is integrated into Wazuh for centralized security monitoring and custom detection development.
+### Security Architecture
 
-The honeypot provides real-world attack telemetry for SOC investigation and detection engineering exercises.
+The honeypot operates within a dedicated Security VLAN.
+
+Selected external traffic is directed to the environment through controlled firewall policies.
+
+The honeypot is separated from trusted internal infrastructure.
+
+### Wazuh Integration
+
+Honeypot telemetry is integrated into Wazuh for centralized monitoring and custom detection development.
+
+This supports:
+
+- Log analysis
+- Alert investigation
+- Detection engineering
+- Threat monitoring
+- SOC training
 
 ---
 
-### VM 102 — WIN11-SOC-01
+## 12. Windows SOC Endpoint Virtual Machine
 
-| Component | Details |
-|-----------|---------|
-| VM ID | 102 |
-| Hostname | WIN11-SOC-01 |
+### Configuration
+
+| Component | Configuration |
+|---|---|
 | Operating System | Windows 11 |
+| Virtual CPUs | 4 |
 | Memory | 8 GB |
 | Boot Disk | 80 GB |
+| Firmware | UEFI |
+| Virtualization Platform | Proxmox |
 | Primary Role | SOC Endpoint Testing |
 | Security Monitoring | Wazuh Agent |
-| Security Testing | Atomic Red Team / AtomicSOC |
+| Guest Agent | Enabled |
 
-#### Installed Security Components
+### Installed Security Components
 
 - Sysmon
 - Windows Defender
@@ -328,11 +624,9 @@ The honeypot provides real-world attack telemetry for SOC investigation and dete
 - Atomic Red Team
 - AtomicSOC
 
-#### Responsibilities
+### Responsibilities
 
-WIN11-SOC-01 provides a dedicated endpoint for security testing, telemetry generation, and investigation.
-
-Primary activities include:
+The Windows SOC endpoint provides a dedicated environment for:
 
 - Windows security event collection
 - Process execution monitoring
@@ -342,35 +636,50 @@ Primary activities include:
 - MITRE ATT&CK technique testing
 - Detection validation
 
-The endpoint also hosts AtomicSOC, a custom Python and FastAPI application used to execute selected Atomic Red Team tests.
+### AtomicSOC Integration
 
-The Windows 11 endpoint is planned for integration into an Active Directory domain.
+The endpoint hosts AtomicSOC, a custom Python and FastAPI application.
+
+AtomicSOC provides a web-based interface for executing selected Atomic Red Team tests.
+
+The application supports controlled security event generation and detection validation.
+
+### Planned Active Directory Integration
+
+The Windows endpoint is planned for integration into a future Active Directory domain.
+
+This will support additional identity-focused security testing and Windows domain monitoring.
 
 ---
 
-### VM 103 — WAZUH-01
+## 13. Wazuh SIEM Virtual Machine
 
-| Component | Details |
-|-----------|---------|
-| VM ID | 103 |
-| Hostname | WAZUH-01 |
-| Operating System | Ubuntu Server |
+### Configuration
+
+| Component | Configuration |
+|---|---|
+| Operating System | Ubuntu Server 26.04.1 LTS |
+| Virtual CPUs | 4 |
 | Memory | 8 GB |
 | Boot Disk | 80 GB |
+| Virtualization Platform | Proxmox |
 | Primary Application | Wazuh SIEM |
-| Role | Centralized Security Monitoring |
+| Primary Role | Centralized Security Monitoring |
+| Guest Agent | Enabled |
 
-#### Responsibilities
+### Responsibilities
 
-WAZUH-01 hosts the Wazuh security monitoring platform.
+The Wazuh virtual machine provides centralized security event collection and analysis.
 
-The system collects security telemetry from:
+The environment collects telemetry from:
 
-- Windows 11 SOC endpoint
+- Windows SOC endpoint
 - FortiGate firewall
 - DShield/Cowrie honeypot
 
-Primary responsibilities include:
+Additional security monitoring has also been implemented for the dedicated gaming server.
+
+### Security Monitoring Capabilities
 
 - Centralized security event collection
 - Log analysis
@@ -380,33 +689,60 @@ Primary responsibilities include:
 - Detection engineering
 - Security event correlation
 
-Custom detection rules have been developed and tuned to improve alert quality and reduce unnecessary alert noise.
+### Detection Engineering
+
+Custom Wazuh detection rules have been developed and tuned.
+
+This work has included:
+
+- Reviewing security events
+- Identifying relevant log fields
+- Creating custom detection conditions
+- Testing rule behavior
+- Investigating unexpected alerts
+- Reducing unnecessary alert noise
+
+The Wazuh environment serves as the primary SIEM platform for HomeLAB security investigations.
 
 ---
 
-## Retired Virtual Machines
+## 14. Retired Infrastructure
 
-| VM ID | Hostname | Retirement Date | Reason |
-|-------|----------|-----------------|--------|
-| 100 | UBU-MGMT-01 | October 20, 2026 | Unused Ubuntu management VM removed |
+### Ubuntu Management Virtual Machine
 
-### Retirement Notes
+A general-purpose Ubuntu management virtual machine was previously deployed.
 
-UBU-MGMT-01 was previously configured as a general-purpose Ubuntu management virtual machine.
+The VM was retired during infrastructure consolidation in October 2026.
 
-The virtual machine was no longer required and was removed from Proxmox.
+### Retirement Reason
 
-The removal simplified the virtual infrastructure and reclaimed its provisioned storage resources.
+The virtual machine was no longer required for current operations.
+
+Removing it simplified the virtual infrastructure and reclaimed provisioned storage resources.
+
+### Lessons Learned
+
+Infrastructure should be periodically reviewed for unused resources.
+
+Retiring unnecessary systems can:
+
+- Reduce resource consumption
+- Simplify administration
+- Reduce maintenance requirements
+- Reduce the number of systems requiring security updates
+- Improve infrastructure organization
+
+A historical backup archive was retained following retirement.
 
 ---
 
-## Planned Virtual Infrastructure
+## 15. Planned Virtual Infrastructure
 
 ### Windows Server — Active Directory Domain Controller
 
 A Windows Server virtual machine is planned for deployment on Proxmox.
 
-The server will introduce centralized identity management and authentication services into the laboratory.
+The server will introduce centralized identity management and authentication services into the HomeLAB.
 
 #### Planned Roles
 
@@ -418,7 +754,7 @@ The server will introduce centralized identity management and authentication ser
 
 #### Planned Integration
 
-The existing WIN11-SOC-01 endpoint will be joined to the Active Directory domain.
+The existing Windows SOC endpoint will be joined to the Active Directory domain.
 
 This expansion will support:
 
@@ -429,7 +765,7 @@ This expansion will support:
 - Identity-based attack simulations
 - Active Directory detection engineering
 
-The Windows Server VM will be allocated resources based on available Proxmox capacity.
+Resource allocation will be determined according to available Proxmox capacity.
 
 ---
 
@@ -437,7 +773,7 @@ The Windows Server VM will be allocated resources based on available Proxmox cap
 
 A lightweight Linux container is planned for hosting an automated cybersecurity job discovery application.
 
-The application will be developed using Python and AI-assisted analysis.
+The application will use Python and AI-assisted analysis.
 
 #### Planned Capabilities
 
@@ -461,28 +797,130 @@ Resource allocation will be determined during development.
 
 ---
 
-## Future Hardware Considerations
+## 16. Future Hardware Considerations
 
 Potential infrastructure improvements include:
 
 - Additional virtualization resources
-- Dedicated network-attached storage (NAS)
+- Dedicated network-attached storage
 - Expanded backup storage
 - Additional Windows endpoints
 - Additional security monitoring systems
 - Increased memory capacity
-- Additional laboratory networking equipment
+- Additional networking equipment
 
-Future expansion will be evaluated based on resource utilization, storage requirements, and project objectives.
+Future expansion will be evaluated according to:
+
+- Resource utilization
+- Storage requirements
+- Application performance
+- Security requirements
+- Project objectives
 
 ---
 
-## Notes
+## 17. Design Decisions
 
-This document provides an inventory of the physical and virtual infrastructure supporting the CyberSecurity-HomeLab.
+### Centralized Virtualization
 
-Virtual machine CPU allocations, network interfaces, IP addresses, and VLAN assignments are documented separately within the Proxmox and network architecture documentation.
+Proxmox provides a single platform for hosting the primary security workloads.
 
-Hardware specifications will be updated as additional information is verified.
+### Network Segmentation
 
-The inventory will continue evolving as new infrastructure components and security capabilities are introduced.
+The FortiGate and UniFi switching infrastructure provide separation between network segments.
+
+### Dedicated Security Infrastructure
+
+Security monitoring and testing workloads operate independently of personal and work devices.
+
+### Centralized Security Monitoring
+
+Wazuh collects and analyzes security telemetry from multiple sources.
+
+### External Backup Storage
+
+Dedicated storage provides recovery points separate from the primary VM disks.
+
+### Resource Efficiency
+
+Virtualization allows multiple security workloads to share physical computing resources.
+
+### Infrastructure Consolidation
+
+Unused virtual machines are retired when they no longer serve an operational purpose.
+
+### Public Documentation Security
+
+The public repository focuses on infrastructure architecture, technologies, and demonstrated technical capabilities.
+
+Sensitive operational details are maintained separately.
+
+---
+
+## 18. Lessons Learned
+
+Building and maintaining the HomeLAB infrastructure has provided practical experience with:
+
+- Hardware inventory management
+- Virtualization
+- Capacity planning
+- VLAN-based network segmentation
+- Managed switching
+- Firewall administration
+- Power over Ethernet
+- Linux administration
+- Windows administration
+- Security monitoring
+- Backup administration
+- Storage troubleshooting
+- Infrastructure lifecycle management
+
+### Key Technical Lessons
+
+**Accurate inventories improve infrastructure management.**
+
+Documenting hardware and virtual resources simplifies troubleshooting and planning.
+
+**Virtualization improves resource utilization.**
+
+Multiple workloads can share a single physical host while remaining logically separated.
+
+**Network segmentation reduces unnecessary communication.**
+
+Separating systems by purpose provides a foundation for access control.
+
+**Backup infrastructure requires maintenance.**
+
+Storage failures and outdated backup archives can affect recovery readiness.
+
+**Hardware capacity influences future projects.**
+
+CPU, memory, and storage availability must be considered before deploying additional services.
+
+**Retiring unused infrastructure reduces complexity.**
+
+Removing unnecessary systems helps simplify administration and maintenance.
+
+---
+
+## 19. Summary
+
+The CyberSecurity-HomeLab combines physical networking infrastructure, Proxmox virtualization, dedicated security workloads, and centralized monitoring.
+
+The environment includes:
+
+- FortiGate firewall
+- Ubiquiti managed switch
+- Two UniFi wireless access points
+- Proxmox virtualization host
+- Dedicated external backup storage
+- Physical gaming server
+- DShield honeypot
+- Windows SOC endpoint
+- Wazuh SIEM
+
+The infrastructure supports practical experience with network administration, virtualization, endpoint security, SIEM operations, detection engineering, and backup management.
+
+Future expansion will introduce Windows Server, Active Directory, and containerized automation workloads.
+
+This document intentionally excludes sensitive operational details to support safe publication in a public cybersecurity portfolio.
