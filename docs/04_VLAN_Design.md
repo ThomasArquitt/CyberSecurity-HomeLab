@@ -1,6 +1,6 @@
-# VLAN Design
+# 04 — VLAN Design
 
-## Purpose
+## 1. Overview
 
 This document describes the Virtual Local Area Network (VLAN) architecture implemented within the CyberSecurity-HomeLab environment.
 
@@ -18,12 +18,15 @@ The architecture supports:
 - Controlled adversary simulation
 - Gaming server infrastructure
 - Centralized security telemetry collection
+- Future identity and directory services
 
 **Last Updated:** October 20, 2026
 
+> **Security Note:** This document is a sanitized representation of the operational VLAN architecture. Exact VLAN IDs, subnet assignments, gateway addresses, management endpoints, hostnames, firewall policy identifiers, and sensitive configuration details are intentionally excluded.
+
 ---
 
-## Design Principles
+## 2. VLAN Design Principles
 
 The VLAN architecture follows enterprise-inspired security design principles.
 
@@ -39,7 +42,7 @@ Devices and services are separated into logical network segments according to th
 
 ### Centralized Firewall Enforcement
 
-The FortiGate 90D provides Layer 3 routing and firewall policy enforcement between VLANs.
+The FortiGate provides Layer 3 routing and firewall policy enforcement between VLANs.
 
 ### Reduced Lateral Movement
 
@@ -61,33 +64,57 @@ The architecture supports future expansion, including Windows Server, Active Dir
 
 ---
 
-## VLAN Allocation
+## 3. Network Segment Inventory
 
-The following network interfaces and gateway addresses were verified through the FortiGate 90D management interface on October 20, 2026.
+The HomeLAB currently uses six VLANs and a separate untagged infrastructure management network.
 
-| VLAN ID | Interface Name | Subnet | Gateway | Purpose |
-|---------|----------------|--------|---------|---------|
-| 10 | home_vlan | 10.1.10.0/24 | 10.1.10.1 | Trusted home devices |
-| 50 | work_vlan | 10.1.50.0/24 | 10.1.50.1 | Work-related devices |
-| 69 | security_vlan | 10.1.69.0/24 | 10.1.69.1 | Security laboratory |
-| 90 | gaming_vlan | 10.1.90.0/24 | 10.1.90.1 | Gaming infrastructure |
-| 220 | priv_wifi | 10.1.220.0/24 | 10.1.220.1 | Private wireless devices |
-| 221 | public_wifi | 10.1.221.0/24 | 10.1.221.1 | Public wireless devices |
-| N/A | internal | 192.168.1.0/24 | 192.168.1.1 | Infrastructure management |
+### Network Segments
 
-All listed interfaces use a subnet mask of `255.255.255.0`.
+| Network Segment | Primary Purpose | Network Classification |
+|---|---|---|
+| Home Network | Trusted personal devices | Trusted |
+| Work Network | Work-related systems | Restricted |
+| Security Laboratory | Cybersecurity testing and monitoring | Isolated Testing |
+| Gaming Network | Dedicated gaming infrastructure | Segmented |
+| Private Wireless | Trusted wireless clients | Trusted |
+| Public Wireless | Guest and less-trusted devices | Less Trusted |
+| Infrastructure Management | Network and virtualization administration | Restricted Management |
 
-The internal management network operates on a FortiGate hardware switch interface rather than a dedicated VLAN interface.
+### Network Architecture
 
-The six VLAN IDs reflect the documented network design. Interface names and gateway addresses were verified through the FortiGate GUI; the underlying VLAN tag configuration can be independently verified through the FortiGate CLI.
+```text
+                       INTERNET
+                          |
+                          |
+                    FORTIGATE 90D
+                   FIREWALL / ROUTER
+                          |
+                          |
+                   MANAGED SWITCH
+                          |
+          +---------------+---------------+
+          |               |               |
+          |               |               |
+       PROXMOX         WIRELESS        WIRED
+       HOST            ACCESS          DEVICES
+          |            POINTS
+          |               |
+     +----+----+      +---+---+
+     |    |    |      |       |
+     |    |    |   PRIVATE  PUBLIC
+     |    |    |   WIRELESS WIRELESS
+     |    |    |
+  DSHIELD SOC WAZUH
+  HONEYPOT VM  SIEM
+```
+
+This diagram represents the logical relationships between infrastructure components.
+
+It does not disclose physical port assignments or operational network addressing.
 
 ---
 
-## VLAN 10 — Home Network
-
-**Interface:** `home_vlan`  
-**Subnet:** `10.1.10.0/24`  
-**Gateway:** `10.1.10.1`
+## 4. Home Network
 
 ### Purpose
 
@@ -107,24 +134,21 @@ This segment separates personal systems from work-related devices, security test
 
 The primary administrative workstation operates within the Home VLAN.
 
-| Component | Details |
-|-----------|---------|
-| Hostname | TIC-PC |
-| IP Address | 10.1.10.50 |
-| Network | Home VLAN 10 |
-| Role | Infrastructure Administration |
+It is used to remotely administer laboratory infrastructure.
 
-TIC-PC is used to remotely administer laboratory infrastructure.
+Dedicated FortiGate policies authorize management traffic from this workstation to selected infrastructure destinations.
 
-Dedicated FortiGate policies authorize management traffic from this workstation to specific infrastructure destinations.
+### Security Considerations
+
+The Home VLAN is classified as a trusted network.
+
+However, access to security and management infrastructure is still governed by applicable firewall policies.
+
+Trusted network membership does not automatically grant unrestricted administrative access.
 
 ---
 
-## VLAN 50 — Work Network
-
-**Interface:** `work_vlan`  
-**Subnet:** `10.1.50.0/24`  
-**Gateway:** `10.1.50.1`
+## 5. Work Network
 
 ### Purpose
 
@@ -148,11 +172,7 @@ The separation supports a more controlled environment for work-related devices.
 
 ---
 
-## VLAN 69 — Security Laboratory
-
-**Interface:** `security_vlan`  
-**Subnet:** `10.1.69.0/24`  
-**Gateway:** `10.1.69.1`
+## 6. Security Laboratory Network
 
 ### Purpose
 
@@ -160,26 +180,24 @@ The Security VLAN provides a dedicated network segment for cybersecurity testing
 
 This network supports practical SOC investigations, security event generation, detection engineering, and controlled adversary simulation.
 
-### Verified Security Endpoints
+### Security Workloads
 
-| Hostname | IP Address | Operating System | Purpose |
-|----------|------------|------------------|---------|
-| DSHIELD-01 | 10.1.69.70 | Ubuntu 26.04 LTS | SSH Honeypot |
-| WIN11-SOC-01 | 10.1.69.71 | Windows 11 Pro | SOC Testing Endpoint |
-| WAZUH-01 | 10.1.69.72 | Ubuntu Server | Centralized Security Monitoring |
+| Workload | Operating System | Primary Purpose |
+|---|---|---|
+| DShield Honeypot | Ubuntu Server | SSH Honeypot and Attack Telemetry |
+| Windows SOC Endpoint | Windows 11 Pro | SOC Testing and Endpoint Monitoring |
+| Wazuh SIEM | Ubuntu Server | Centralized Security Monitoring |
 
-The IP addresses were verified through FortiGate address objects and Wazuh endpoint information.
+### DShield Honeypot
 
-### DSHIELD-01
-
-DSHIELD-01 operates as a dedicated Ubuntu Linux virtual machine hosting the DShield/Cowrie SSH honeypot.
+The DShield/Cowrie honeypot operates as a dedicated Ubuntu Linux virtual machine.
 
 The honeypot collects:
 
 - Unauthorized SSH connection attempts
 - Credential guessing activity
 - Authentication failures
-- Attacker command execution
+- Commands submitted during emulated sessions
 - Automated attack behavior
 - Suspicious network connections
 
@@ -187,9 +205,9 @@ External connectivity is controlled through FortiGate firewall policies and dest
 
 Collected telemetry is integrated into Wazuh for centralized monitoring and detection engineering.
 
-### WIN11-SOC-01
+### Windows SOC Endpoint
 
-WIN11-SOC-01 operates as a dedicated Windows 11 endpoint for security testing and investigation.
+The Windows SOC endpoint operates as a dedicated Windows 11 virtual machine for security testing and investigation.
 
 Configured components include:
 
@@ -203,9 +221,9 @@ Configured components include:
 
 The endpoint generates controlled security events that can be investigated through Windows telemetry and Wazuh.
 
-### WAZUH-01
+### Wazuh SIEM
 
-WAZUH-01 hosts the centralized Wazuh security monitoring platform.
+The Wazuh virtual machine hosts the centralized security monitoring platform.
 
 The server receives telemetry from monitored endpoints and network infrastructure.
 
@@ -222,36 +240,33 @@ Its responsibilities include:
 
 The Security VLAN contains systems used for testing and observing potentially malicious activity.
 
-Communication with trusted network segments is restricted through explicit FortiGate deny policies.
+Communication with trusted network segments is restricted through dedicated FortiGate firewall policies.
 
-Dedicated allow policies permit authorized administrative access and required monitoring traffic.
+Authorized administrative access and required monitoring traffic are permitted through applicable allow policies.
+
+The design helps reduce opportunities for lateral movement from security testing systems into trusted infrastructure.
 
 ---
 
-## VLAN 90 — Gaming Network
-
-**Interface:** `gaming_vlan`  
-**Subnet:** `10.1.90.0/24`  
-**Gateway:** `10.1.90.1`
+## 7. Gaming Network
 
 ### Purpose
 
 The Gaming VLAN provides a dedicated network segment for gaming-related devices and server infrastructure.
 
-The primary system operating within this segment is GAME-SERVER-01.
+The primary system operating within this segment is a dedicated physical Windows computer hosting a Palworld game server.
 
-### Verified Server Configuration
+### Server Configuration
 
-| Component | Details |
-|-----------|---------|
-| Hostname | GAME-SERVER-01 |
-| IP Address | 10.1.90.100 |
+| Component | Configuration |
+|---|---|
+| Platform | Dedicated Physical Computer |
 | Operating System | Windows 11 Pro |
 | Primary Application | Palworld Dedicated Server |
+| Installation Method | SteamCMD |
 | IP Assignment | DHCP Reservation |
-| Firewall | FortiGate 90D |
-| Security Monitoring | Wazuh Agent 4.14.7 |
-| Wazuh Agent ID | 003 |
+| Firewall | FortiGate |
+| Security Monitoring | Wazuh Agent |
 | Monitoring Status | Active |
 
 ### Server Infrastructure
@@ -272,21 +287,17 @@ The Gaming VLAN separates gaming infrastructure from trusted personal devices an
 
 Required communication is controlled through FortiGate firewall policies.
 
-A dedicated firewall policy permits GAME-SERVER-01 to communicate with WAZUH-01.
+A dedicated policy permits the gaming server to communicate with the Wazuh SIEM for security monitoring.
 
-The Wazuh agent was verified as actively connected on October 20, 2026.
+The Wazuh agent was verified as actively connected during the October 20, 2026 infrastructure review.
 
 ---
 
-## VLAN 220 — Private Wi-Fi
-
-**Interface:** `priv_wifi`  
-**Subnet:** `10.1.220.0/24`  
-**Gateway:** `10.1.220.1`
+## 8. Private Wireless Network
 
 ### Purpose
 
-The Private Wi-Fi VLAN provides wireless connectivity for trusted devices.
+The Private Wireless VLAN provides wireless connectivity for trusted devices.
 
 Wireless connectivity is delivered through Ubiquiti access points connected to the managed network infrastructure.
 
@@ -300,19 +311,17 @@ Wireless connectivity is delivered through Ubiquiti access points connected to t
 
 ### Security Considerations
 
-Communication between the Private Wi-Fi VLAN and other routed network segments is controlled through FortiGate firewall policies.
+Communication between the Private Wireless VLAN and other routed network segments is controlled through FortiGate firewall policies.
+
+Private wireless clients are logically separated from public wireless clients.
 
 ---
 
-## VLAN 221 — Public Wi-Fi
-
-**Interface:** `public_wifi`  
-**Subnet:** `10.1.221.0/24`  
-**Gateway:** `10.1.221.1`
+## 9. Public Wireless Network
 
 ### Purpose
 
-The Public Wi-Fi VLAN provides wireless connectivity for less-trusted devices.
+The Public Wireless VLAN provides wireless connectivity for less-trusted devices.
 
 This segment is designed to separate public wireless clients from trusted internal infrastructure.
 
@@ -330,56 +339,61 @@ Internet-only access is the intended security design.
 
 Actual permitted destinations and services are determined by the configured FortiGate firewall policies.
 
+### Security Benefits
+
+Public wireless segmentation helps reduce unnecessary communication between guest devices and trusted infrastructure.
+
+This provides an additional security boundary for the HomeLAB.
+
 ---
 
-## Internal Management Network
-
-**Interface:** `internal`  
-**Subnet:** `192.168.1.0/24`  
-**Gateway:** `192.168.1.1`  
-**Interface Type:** FortiGate Hardware Switch
+## 10. Infrastructure Management Network
 
 ### Purpose
 
-The internal network provides connectivity for infrastructure administration and management.
+The infrastructure management network provides connectivity for administration and management of core infrastructure.
 
 Unlike the six VLAN interfaces, this network operates through the FortiGate hardware switch interface.
 
-### Verified Infrastructure Addresses
+It is not configured as a dedicated management VLAN.
 
-| Device | IP Address | Purpose |
-|--------|------------|---------|
-| FortiGate 90D | 192.168.1.1 | Firewall Management |
-| Ubiquiti Switch | 192.168.1.2 | Switch Management |
-| Proxmox Host | 192.168.1.10 | Virtualization Management |
+### Managed Infrastructure
 
-These addresses were verified through FortiGate interface and address object configurations.
+The management network supports administration of:
+
+- FortiGate firewall
+- Ubiquiti managed switch
+- Proxmox virtualization host
+- Additional infrastructure services
 
 ### Administrative Access
 
-Administrative access to the HomeLAB infrastructure has been configured, tested, and successfully utilized through SSH.
+Administrative access to HomeLAB infrastructure has been configured, tested, and successfully utilized through SSH.
 
-SSH provides remote command-line access for infrastructure administration, configuration management, troubleshooting, and system maintenance.
+SSH provides remote command-line access for:
 
-Verified administrative capabilities include:
+- Infrastructure administration
+- Configuration management
+- Troubleshooting
+- System maintenance
+- Network connectivity verification
+- Remote service management
 
-- Remote SSH administration of infrastructure systems
+### Verified Administrative Capabilities
+
+- Remote SSH administration
 - Command-line configuration and troubleshooting
 - Remote service management
 - Security configuration management
 - Network connectivity verification
 - System maintenance and updates
-- Remote administration without requiring direct console access
+- Administration without requiring direct console access
 
-SSH connectivity has been successfully tested and utilized across the laboratory infrastructure.
-
-Administrative access is controlled through authentication, device configuration, and applicable FortiGate security policies.
-
-### Administrative Security
+### Security Controls
 
 The management design emphasizes restricting administrative access to authorized systems.
 
-Security controls include:
+Controls include:
 
 - Device authentication
 - Firewall policy enforcement
@@ -393,36 +407,80 @@ Verification of unauthorized access restrictions is a separate security validati
 
 ---
 
-## FortiGate Firewall Segmentation
+## 11. VLAN Routing Architecture
 
-The FortiGate 90D provides centralized firewall policy enforcement between network segments.
+The FortiGate serves as the primary Layer 3 routing device for the segmented network.
 
-The firewall utilizes explicit allow policies, explicit deny policies, and an implicit deny rule.
+### Routing Responsibilities
 
-### Explicit Security VLAN Deny Policies
+The firewall provides:
 
-Five dedicated firewall policies restrict traffic originating from the Security VLAN.
+- VLAN gateway interfaces
+- Inter-VLAN routing
+- WAN routing
+- Network Address Translation
+- Firewall policy enforcement
 
-| Policy ID | Source Interface | Destination Interface | Action |
-|-----------|------------------|-----------------------|--------|
-| 25 | security_vlan | home_vlan | DENY |
-| 26 | security_vlan | internal | DENY |
-| 27 | security_vlan | work_vlan | DENY |
-| 28 | security_vlan | priv_wifi | DENY |
-| 29 | security_vlan | public_wifi | DENY |
+### Inter-VLAN Traffic Flow
 
-These policies deny traffic initiated from the Security VLAN toward the specified network segments when the traffic matches the policy conditions.
+```text
+                  SOURCE DEVICE
+                        |
+                        |
+                   SOURCE VLAN
+                        |
+                        |
+                    FORTIGATE
+                        |
+                        |
+                 FIREWALL POLICY
+                    EVALUATION
+                        |
+              +---------+---------+
+              |                   |
+              |                   |
+          PERMITTED             DENIED
+              |                   |
+              v                   v
+       DESTINATION VLAN        DROPPED
+              |
+              |
+       DESTINATION DEVICE
+```
 
-### Security Objectives
+### Security Enforcement
 
-The explicit deny policies help:
+Traffic between network segments is evaluated against the applicable FortiGate firewall policies.
 
-- Prevent unauthorized connections into trusted networks.
-- Reduce opportunities for lateral movement.
-- Separate honeypot infrastructure from personal devices.
-- Restrict access to management infrastructure.
-- Protect work-related devices.
-- Maintain separation between security systems and wireless clients.
+Communication is permitted when a matching allow policy authorizes the traffic.
+
+Traffic without an applicable allow policy is subject to the firewall's implicit deny behavior.
+
+---
+
+## 12. FortiGate Firewall Segmentation
+
+The FortiGate provides centralized firewall policy enforcement between network segments.
+
+The firewall utilizes:
+
+- Explicit allow policies
+- Explicit deny policies
+- Implicit deny behavior
+- Stateful traffic inspection
+
+### Security VLAN Restrictions
+
+Dedicated firewall policies restrict traffic originating from the Security VLAN toward trusted network segments.
+
+These restrictions help:
+
+- Prevent unauthorized connections into trusted networks
+- Reduce opportunities for lateral movement
+- Separate honeypot infrastructure from personal devices
+- Restrict access to management infrastructure
+- Protect work-related devices
+- Maintain separation between security systems and wireless clients
 
 ### Stateful Firewall Behavior
 
@@ -430,7 +488,7 @@ The FortiGate operates as a stateful firewall.
 
 Authorized connections initiated from permitted network segments can receive return traffic without requiring a separate reverse-direction allow policy.
 
-For example, an authorized SSH connection from TIC-PC to WIN11-SOC-01 can receive return traffic through the established session.
+For example, an authorized SSH connection from an administrative workstation to a security endpoint can receive return traffic through the established session.
 
 This allows controlled administration while restricting unauthorized connections initiated from the Security VLAN.
 
@@ -442,94 +500,133 @@ The first matching policy determines the action applied to traffic.
 
 Explicit deny policies must be positioned appropriately relative to allow policies to enforce the intended security design.
 
+### Security Validation
+
+Configured policies were reviewed during the October 20, 2026 infrastructure assessment.
+
+The presence of a firewall policy confirms configuration, but complete isolation validation requires testing both authorized and unauthorized traffic paths.
+
 ---
 
-## Authorized Administrative Access
+## 13. Authorized Administrative Access
 
-TIC-PC is the designated administrative workstation.
+A designated administrative workstation is used to manage HomeLAB infrastructure.
 
-**Hostname:** `TIC-PC`  
-**IP Address:** `10.1.10.50`  
-**Network:** Home VLAN 10
+The workstation operates within the trusted Home network.
 
-Dedicated firewall policies permit administrative access from TIC-PC to selected infrastructure systems.
+Dedicated firewall policies permit administrative access to selected infrastructure systems.
 
-### Verified Management Policies
+### Managed Systems
 
-| Policy ID | Destination | Permitted Services |
-|-----------|-------------|--------------------|
-| 7 | Proxmox Host | HTTP, HTTPS, SSH |
-| 22 | FortiGate Management | HTTP, HTTPS, SSH |
-| 23 | Ubiquiti Switch | HTTP, HTTPS |
-| 32 | WIN11-SOC-01 | SSH |
-| 33 | WAZUH-01 | SSH, HTTPS |
-| 34 | DSHIELD-01 | DSHIELD-SSH-MGMT |
-| 37 | GAME-SERVER-01 | SSH, PALWORLD-UDP-8211 |
+Authorized administration includes:
 
-These policies provide controlled administrative access to infrastructure systems.
+- Proxmox virtualization host
+- FortiGate firewall
+- Ubiquiti managed switch
+- Windows SOC endpoint
+- Wazuh SIEM
+- DShield honeypot
+- Dedicated gaming server
 
-The configuration avoids relying exclusively on unrestricted access between network segments.
+### Management Technologies
+
+- SSH
+- HTTPS-based administration
+- PowerShell
+- Device-specific management interfaces
 
 ### Management Access Validation
 
 SSH administrative connectivity has been tested and successfully utilized throughout the laboratory.
 
-The configured firewall policies provide the intended network paths for administrative access.
+Configured firewall policies provide the intended network paths for administrative access.
 
-Access to the FortiGate itself is additionally governed by interface administrative-access settings, administrator trusted hosts, and applicable local-in controls.
+Access to the FortiGate itself is additionally governed by interface administrative-access settings and applicable local-in controls.
+
+### Security Considerations
+
+Administrative access is restricted through a combination of:
+
+- Network policies
+- Device authentication
+- Administrative permissions
+- Management service configuration
+
+Exact administrative access policies and management endpoints are excluded from public documentation.
 
 ---
 
-## Cross-VLAN Security Monitoring
+## 14. Cross-VLAN Security Monitoring
 
 The Gaming VLAN and Security VLAN contain systems that communicate for centralized security monitoring.
 
-### Wazuh Communication Policy
+### Wazuh Communication
 
-| Component | Configuration |
-|-----------|---------------|
-| Policy ID | 39 |
-| Source Interface | gaming_vlan |
-| Destination Interface | security_vlan |
-| Source Address | GAME-SERVER-01 |
-| Destination Address | WAZUH-01 |
-| Service | WAZUHTCP |
-| Action | ACCEPT |
-| Logging | All |
+A dedicated firewall policy permits the gaming server to communicate with the Wazuh SIEM.
 
-This policy permits GAME-SERVER-01 to communicate with WAZUH-01 using the defined WAZUHTCP service.
+The policy limits permitted communication according to:
 
-The policy supports centralized monitoring while limiting permitted communication to the configured source, destination, and service.
+- Source network
+- Destination network
+- Source system
+- Destination system
+- Required monitoring service
+
+### Monitoring Architecture
+
+```text
+                   GAMING VLAN
+                        |
+                        |
+                  GAME SERVER
+                        |
+                        |
+                    WAZUH AGENT
+                        |
+                        |
+                    FORTIGATE
+                        |
+                        |
+                 FIREWALL POLICY
+                        |
+                        |
+                   SECURITY VLAN
+                        |
+                        |
+                     WAZUH SIEM
+```
 
 ### Security Benefits
 
-- Limits unnecessary cross-VLAN communication.
-- Supports centralized security monitoring.
-- Maintains segmentation between gaming and security infrastructure.
-- Provides firewall logging for permitted monitoring traffic.
-- Demonstrates least-privilege network access control.
+- Limits unnecessary cross-VLAN communication
+- Supports centralized security monitoring
+- Maintains segmentation between gaming and security infrastructure
+- Provides firewall logging for permitted monitoring traffic
+- Demonstrates least-privilege network access control
 
 ---
 
-## Internet Access and NAT
+## 15. Internet Access and NAT
 
-The FortiGate provides internet access through WAN1.
+The FortiGate provides internet access through its WAN interface.
 
 Outbound firewall policies permit internet connectivity from authorized internal networks.
 
-### Verified Outbound Internet Policies
+### Outbound Internet Access
 
-| Policy ID | Source Interface | Destination Interface | NAT | Action |
-|-----------|------------------|-----------------------|-----|--------|
-| 1 | home_vlan | wan1 | Enabled | ACCEPT |
-| 6 | internal | wan1 | Enabled | ACCEPT |
-| 5 | security_vlan | wan1 | Enabled | ACCEPT |
-| 4 | work_vlan | wan1 | Enabled | ACCEPT |
-| 36 | gaming_vlan | wan1 | Enabled | ACCEPT |
-| 3 | priv_wifi | wan1 | Enabled | ACCEPT |
-| 30 | public_wifi | wan1 | Enabled | ACCEPT |
+The environment provides internet connectivity for:
 
-Outbound NAT allows internal systems to access external networks through the FortiGate WAN interface.
+- Home network
+- Work network
+- Security laboratory
+- Gaming network
+- Private wireless network
+- Public wireless network
+- Infrastructure management network
+
+### Source NAT
+
+Outbound Network Address Translation allows internal systems to access external networks through the FortiGate.
 
 ### Security Considerations
 
@@ -539,9 +636,11 @@ The current outbound policies permit broad services to external destinations.
 
 Future security-hardening activities may include evaluating more restrictive outbound service requirements for sensitive infrastructure.
 
+Exact outbound policy identifiers and service definitions are excluded from this public document.
+
 ---
 
-## External Service Exposure
+## 16. External Service Exposure
 
 The laboratory includes intentionally exposed services for security research and game server hosting.
 
@@ -549,34 +648,13 @@ The laboratory includes intentionally exposed services for security research and
 
 The FortiGate contains inbound firewall policies supporting the DShield/Cowrie honeypot.
 
-Verified inbound policy IDs include:
-
-- Policy 24 — Honeypot SSH
-- Policy 16 — Honeypot HTTP
-- Policy 17 — Honeypot HTTPS
-- Policy 18 — Cowrie SSH Honeypot
-
-These policies permit traffic from WAN1 toward the Security VLAN using configured destination address objects.
-
-The exact external ports and destination mappings depend on the associated Virtual IP (VIP) configurations.
+The honeypot receives selected external traffic through destination NAT configurations.
 
 ### Palworld Server Exposure
 
 A dedicated inbound policy supports external connectivity to the Palworld dedicated server.
 
-| Component | Details |
-|-----------|---------|
-| Policy ID | 38 |
-| Source Interface | wan1 |
-| Destination Interface | gaming_vlan |
-| Destination Object | PALWORLD-UDP-8211 |
-| Service | PALWORLD-UDP-8211 |
-| Action | ACCEPT |
-| Logging | All |
-
-The policy supports external connectivity to the Palworld dedicated server.
-
-The associated VIP configuration determines the external-to-internal destination mapping.
+The associated destination NAT configuration directs permitted application traffic to the gaming server.
 
 ### Security Considerations
 
@@ -590,15 +668,20 @@ Security controls include:
 - Endpoint monitoring
 - Centralized security telemetry
 
-The exact VIP mappings and exposed ports will be documented in the FortiGate configuration documentation.
+Exact external ports, destination mappings, public IP addresses, and policy identifiers are excluded from public documentation.
 
 ---
 
-## VLAN Switching Infrastructure
+## 17. VLAN Switching Infrastructure
 
 The Ubiquiti Switch Lite 8 PoE provides managed Layer 2 switching.
 
-The switch supports VLAN-aware connectivity between the FortiGate firewall, virtualization infrastructure, wireless access points, and additional network devices.
+The switch supports VLAN-aware connectivity between:
+
+- FortiGate firewall
+- Proxmox virtualization host
+- Wireless access points
+- Additional network devices
 
 ### Responsibilities
 
@@ -625,7 +708,7 @@ The FortiGate provides gateway services and firewall enforcement for routed wire
 
 ---
 
-## Security Monitoring Integration
+## 18. Security Monitoring Integration
 
 The laboratory utilizes Wazuh for centralized security monitoring.
 
@@ -633,25 +716,24 @@ Wazuh collects security telemetry from Windows endpoints, Ubuntu Linux systems, 
 
 ### Verified Wazuh Agents
 
-The following agents were verified through the Wazuh dashboard on October 20, 2026.
+The following endpoint monitoring status was verified through the Wazuh dashboard on October 20, 2026.
 
-| Agent ID | Hostname | IP Address | Operating System | Version | Status |
-|----------|----------|------------|------------------|---------|--------|
-| 001 | WIN11-SOC-01 | 10.1.69.71 | Windows 11 Pro | 4.14.7 | Active |
-| 002 | DSHIELD-01 | 10.1.69.70 | Ubuntu 26.04 LTS | 4.14.7 | Active |
-| 003 | GAME-SERVER-01 | 10.1.90.100 | Windows 11 Pro | 4.14.7 | Active |
+| Endpoint | Operating System | Monitoring Status |
+|---|---|---|
+| Windows SOC Endpoint | Windows 11 Pro | Active |
+| DShield Honeypot | Ubuntu Linux | Active |
+| Gaming Server | Windows 11 Pro | Active |
 
 ### Monitoring Summary
 
 | Metric | Value |
-|--------|-------|
+|---|---|
 | Registered Agents | 3 |
 | Active Agents | 3 |
 | Disconnected Agents | 0 |
 | Pending Agents | 0 |
 | Windows Endpoints | 2 |
 | Ubuntu Endpoints | 1 |
-| Agent Group | default |
 
 All three registered endpoint agents were confirmed as actively connected.
 
@@ -668,44 +750,59 @@ Wazuh collects telemetry from:
 
 The Security VLAN and Gaming VLAN contain actively monitored endpoints.
 
-Wazuh agents communicate with the centralized monitoring infrastructure through the network paths permitted by the applicable firewall policies.
+Wazuh agents communicate with centralized monitoring infrastructure through the network paths permitted by applicable firewall policies.
 
 This provides centralized security visibility across multiple network segments.
 
 ---
 
-## FortiGate Address Objects
+## 19. FortiGate Address Objects
 
 FortiGate address objects provide reusable references for firewall policies.
 
-The following infrastructure address objects were verified.
+Address objects simplify the management of:
 
-| Address Object | IP Address | Purpose |
-|----------------|------------|---------|
-| Fortigate_mgmt | 192.168.1.1/32 | Firewall Management |
-| Ubiquity_Switch | 192.168.1.2/32 | Switch Management |
-| PVE_Host | 192.168.1.10/32 | Proxmox Management |
-| Tic_PC | 10.1.10.50/32 | Administrative Workstation |
-| DSHIELD_Honeypot | 10.1.69.70/32 | Honeypot |
-| WIN11-SOC-01 | 10.1.69.71/32 | SOC Endpoint |
-| WAZUH-01 | 10.1.69.72/32 | Security Monitoring |
-| GAME-SERVER-01 | 10.1.90.100/32 | Palworld Server |
+- Source addresses
+- Destination addresses
+- Infrastructure endpoints
+- Security monitoring systems
+- Administrative workstations
+- Network segments
 
-### Legacy Address Object
+### Implemented Address Object Categories
 
-An additional address object was identified:
+The environment uses address objects representing:
 
-| Address Object | IP Address | References |
-|----------------|------------|------------|
-| Ubuntu_Server_VM | 192.168.1.20/32 | 0 |
+- Firewall management infrastructure
+- Managed switching infrastructure
+- Proxmox virtualization host
+- Administrative workstation
+- DShield honeypot
+- Windows SOC endpoint
+- Wazuh SIEM
+- Dedicated gaming server
 
-This object may reference the retired Ubuntu management virtual machine.
+### Configuration Management
 
-The object should be reviewed before removal to confirm that it is no longer required.
+Address objects allow firewall policies to reference logical infrastructure components rather than repeatedly entering address values.
+
+This improves consistency and simplifies policy administration.
+
+### Legacy Configuration Review
+
+A legacy address object associated with a retired Ubuntu management workload was identified during infrastructure review.
+
+The object had no observed references at the time of inspection.
+
+It is a candidate for cleanup following confirmation that it is no longer required.
+
+### Public Documentation
+
+Exact address object names and IP assignments are intentionally excluded.
 
 ---
 
-## Security Considerations
+## 20. Security Considerations
 
 ### Least Privilege
 
@@ -717,13 +814,13 @@ Work devices, gaming infrastructure, security testing systems, and wireless clie
 
 ### Explicit Deny Policies
 
-Five explicit deny policies restrict traffic originating from the Security VLAN toward trusted network segments.
+Dedicated deny policies restrict traffic originating from the Security VLAN toward trusted network segments.
 
 ### Administrative Access
 
 SSH administration has been tested and successfully utilized across the laboratory infrastructure.
 
-Dedicated firewall policies provide authorized access from TIC-PC to selected infrastructure systems.
+Dedicated firewall policies provide authorized access from the administrative workstation to selected infrastructure systems.
 
 ### Honeypot Exposure
 
@@ -737,57 +834,55 @@ Firewall and endpoint telemetry is collected centrally through Wazuh.
 
 This supports security investigations, detection engineering, and monitoring across multiple network segments.
 
-### FortiGate Management Services
+### Management Service Hardening
 
-A review of the FortiGate interface configuration identified administrative services enabled on multiple interfaces.
+A management service configuration review identified opportunities for additional administrative access hardening.
 
-Observed services include:
+Recommended activities include:
 
-- HTTPS
-- HTTP
-- SSH
-- PING
-- FortiManager access
-
-The internal hardware switch interface provides SSH and HTTPS administrative access.
-
-Several VLAN interfaces also have HTTP and HTTPS administrative access enabled.
-
-These settings are documented for future security-hardening review.
-
-Recommended validation activities include:
-
-- Review administrative access requirements for each interface.
-- Disable unnecessary HTTP management access.
+- Review administrative access requirements.
+- Disable unnecessary management services.
 - Prefer encrypted management protocols.
 - Verify administrative access restrictions.
-- Review FortiGate local-in policies where applicable.
+- Review applicable management-plane controls.
 
-These activities are planned security reviews and are not documented as completed changes.
+These activities remain planned security reviews and are not documented as completed changes.
+
+Specific management-plane configurations and potential weaknesses are excluded from public documentation.
 
 ---
 
-## Validation
+## 21. Validation
 
-The following network components and capabilities have been verified.
+The following network components and capabilities were reviewed during the October 20, 2026 infrastructure assessment.
+
+### Verified Configuration
 
 | Component | Validation | Status |
-|-----------|------------|--------|
-| Home VLAN | FortiGate interface configured | Verified |
-| Work VLAN | FortiGate interface configured | Verified |
-| Security VLAN | FortiGate interface configured | Verified |
-| Gaming VLAN | FortiGate interface configured | Verified |
-| Private Wi-Fi VLAN | FortiGate interface configured | Verified |
-| Public Wi-Fi VLAN | FortiGate interface configured | Verified |
-| Internal Management Network | FortiGate hardware switch configured | Verified |
+|---|---|---|
+| Home Network | FortiGate interface configured | Verified |
+| Work Network | FortiGate interface configured | Verified |
+| Security Network | FortiGate interface configured | Verified |
+| Gaming Network | FortiGate interface configured | Verified |
+| Private Wireless Network | FortiGate interface configured | Verified |
+| Public Wireless Network | FortiGate interface configured | Verified |
+| Infrastructure Management | FortiGate hardware switch configured | Verified |
 | SSH Administration | Successfully tested and utilized | Verified |
-| Security VLAN Deny Policies | Five explicit deny policies configured | Verified |
-| Administrative Access Policies | Dedicated TIC-PC policies configured | Verified |
-| Wazuh Cross-VLAN Policy | Gaming-to-Security monitoring policy configured | Verified |
-| Outbound Internet Policies | NAT-enabled policies configured | Verified |
-| WIN11-SOC-01 | Wazuh agent connected | Active |
-| DSHIELD-01 | Wazuh agent connected | Active |
-| GAME-SERVER-01 | Wazuh agent connected | Active |
+| Security VLAN Restrictions | Dedicated deny policies configured | Verified |
+| Administrative Access | Dedicated management policies configured | Verified |
+| Cross-VLAN Wazuh Monitoring | Gaming-to-Security policy configured | Verified |
+| Outbound Internet Access | NAT-enabled policies configured | Verified |
+| Windows SOC Endpoint | Wazuh agent connected | Active |
+| DShield Honeypot | Wazuh agent connected | Active |
+| Gaming Server | Wazuh agent connected | Active |
+
+### Validation Limitations
+
+Configured firewall policies establish intended access controls.
+
+However, verifying that policies exist does not independently prove that every unauthorized communication path is blocked.
+
+Additional traffic testing is required to validate effective segmentation.
 
 ### Additional Validation Opportunities
 
@@ -800,14 +895,13 @@ Future configuration reviews will include:
 - Administrative access restrictions
 - DHCP scope configurations
 - Network traffic logging
-- FortiGate management service hardening
-- Honeypot VIP mappings
-- Palworld VIP mappings
+- Management service hardening
+- External service exposure reviews
 - Legacy address object cleanup
 
 ---
 
-## Future Expansion
+## 22. Future Expansion
 
 ### Windows Server and Active Directory
 
@@ -821,7 +915,7 @@ The server will provide:
 - Centralized Identity Management
 - Domain Authentication
 
-WIN11-SOC-01 will be joined to the Active Directory domain.
+The existing Windows SOC endpoint will be joined to the Active Directory domain.
 
 The domain controller's network placement will be determined during implementation.
 
@@ -856,7 +950,7 @@ Network access for the application will be controlled through the existing secur
 
 ---
 
-## Lessons Learned
+## 23. Lessons Learned
 
 Implementing and administering the VLAN architecture has provided practical experience with:
 
@@ -873,34 +967,73 @@ Implementing and administering the VLAN architecture has provided practical expe
 - Network troubleshooting
 - Security monitoring across network segments
 
-The environment demonstrates how network segmentation, centralized firewall management, and endpoint telemetry collection can support a controlled and observable infrastructure.
+### Key Technical Lessons
+
+**VLAN segmentation provides logical separation.**
+
+VLANs create separate broadcast domains but do not independently enforce all security requirements.
+
+**Firewall policies govern routed communication.**
+
+The FortiGate provides centralized control over permitted traffic between VLANs.
+
+**Stateful firewalls support controlled administration.**
+
+Authorized sessions can receive return traffic without requiring unrestricted reverse-direction access.
+
+**Administrative access requires multiple controls.**
+
+Firewall policies, authentication, and device-level configuration all contribute to management security.
+
+**Centralized monitoring provides visibility across network segments.**
+
+Wazuh collects telemetry from systems operating in different VLANs.
+
+**Configuration verification is not the same as security validation.**
+
+Reviewing policies confirms configuration, while traffic testing is needed to establish whether intended restrictions are effective.
 
 ---
 
-## Documentation References
+## 24. Documentation References
 
 Related documentation includes:
 
+- `01_Project_Overview.md`
+- `02_Hardware_Inventory.md`
 - `03_Network_Architecture.md`
 - `05_IP_Addressing_Plan.md`
 - `06_Proxmox_Configuration.md`
 - `07_FortiGate_Configuration.md`
 - `08_Ubiquiti_Switch_Configuration.md`
+- `09_Ubuntu_Server.md`
+- `10_DShield_Honeypot.md`
+- `11_Backup_and_Recovery.md`
 
 ---
 
-## Notes
+## 25. Summary
 
-This document describes the VLAN architecture implemented within the CyberSecurity-HomeLab as of October 20, 2026.
+The CyberSecurity-HomeLab uses six VLANs and a separate untagged infrastructure management network to provide logical network segmentation.
 
-Network interface names and gateway addresses were verified through the FortiGate management interface.
+The FortiGate 90D provides centralized routing, Network Address Translation, and firewall policy enforcement.
 
-Firewall policies and address objects were reviewed to document network segmentation and authorized communication paths.
+The Ubiquiti managed switch transports VLAN traffic between connected infrastructure.
 
-SSH administrative connectivity has been successfully tested and utilized across the laboratory infrastructure.
+The environment separates:
 
-Three Wazuh endpoint agents were verified as actively connected.
+- Trusted home devices
+- Work-related systems
+- Security testing infrastructure
+- Gaming infrastructure
+- Private wireless clients
+- Public wireless clients
+- Infrastructure management systems
 
-Detailed firewall policies, IP address assignments, switch configurations, and DHCP settings are maintained in separate documentation.
+Wazuh provides centralized security monitoring across multiple network segments.
 
-Network architecture diagrams and screenshots will be updated after the Markdown documentation refresh is completed.
+The VLAN architecture supports practical experience with enterprise networking, firewall administration, access control, and security monitoring.
+
+Future expansion will introduce Windows Server, Active Directory, and additional security automation workloads.
+
+This document intentionally excludes sensitive operational details to support safe publication in a public cybersecurity portfolio.
